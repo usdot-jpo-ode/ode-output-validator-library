@@ -20,7 +20,7 @@ from odevalidator import TestCase
 
 ## Functional Interface
 
-#### `TestCase(**kwargs)`
+### `TestCase(**kwargs)`
 
 Creates a configured test case object that can be used for validation.
 
@@ -45,7 +45,7 @@ test_case = TestCase(
 test_case = TestCase("./config/bsmLogDuringEvent.ini")
 ```
 
-#### `.validate(**kwargs)`
+### `.validate(**kwargs)`
 
 Iterates a message queue and performs validations on each message, returning the results.
 
