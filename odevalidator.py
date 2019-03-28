@@ -94,8 +94,7 @@ class TestCase:
             else:
                 self.field_list.append(Field(config[key]))
 
-    def validate(self, data):
-        validations_failed = 0
+    def _validate(self, data):
         validations = []
         for field in self.field_list:
             result = field.validate(data)
@@ -111,9 +110,9 @@ class TestCase:
         while not msg_queue.empty():
             current_msg = json.loads(msg_queue.get())
             record_id = str(current_msg['metadata']['serialId']['recordId'])
-            field_validation_results = validator.validate(current_msg)
+            field_validations = self._validate(current_msg)
             results.append({
                 'RecordID': record_id,
-                'Validations': field_validation_results
+                'Validations': field_validations
             })
         return {'Results': results}
