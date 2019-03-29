@@ -1,3 +1,4 @@
+# L is a list of elements such as serial numbers
 def missing_elements(L, start, end):
     if end - start <= 1: 
         if L[end] - L[start] > 1:
@@ -28,11 +29,13 @@ def hasduplicate(serialNolist):
                 dup_list.append(new_list[i])
     print(dup_list)
 
+# num_list is a list of elements such as serial numbers
 def missing_numbers(num_list):
       original_list = [x for x in range(num_list[0], num_list[-1] + 1)]
       num_list = set(num_list)
       return (list(num_list ^ set(original_list)))
 
+# test the methods to check if they are working
 def main():
     L = [10,11,13,14,14,15,16,17,19,20]
     print(missing_numbers(L))
