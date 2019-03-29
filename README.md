@@ -34,7 +34,7 @@ test_case = TestCase(
 
 **Parameters**
 
-- **filepath** (_string_) \[REQUIRED\] Relative or absolute path to configuration file (see more information in the configuration section below).
+- **test_case_config** (_string_) \[REQUIRED\] Test case configuration object (see TestCaseConfig below).
 
 **Return Type**
 
