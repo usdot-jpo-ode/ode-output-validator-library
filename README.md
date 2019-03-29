@@ -28,7 +28,7 @@ Creates a configured test case object that can be used for validation.
 
 ```
 test_case = TestCase(
-  filepath='string'  
+  test_case_config=TestCaseConfig()
 )
 ```
 
@@ -42,7 +42,48 @@ test_case = TestCase(
 
 **Usage Example**
 ```
-test_case = TestCase("./config/bsmLogDuringEvent.ini")
+test_case = TestCase(test_case_config)
+```
+
+### `TestCaseConfig(**kwargs)`
+
+Creates a configuration for test cases. Message recordType is extracted during validation and used to determine which validation should be performed.
+
+**Request Syntax**
+
+```
+test_case_config = TestCaseConfig(
+  bsmLogDuringEvent_config_path='string',
+  rxMsg_config_path='string',
+  dnsMsg_config_path='string',
+  bsmTx_config_path='string',
+  driverAlert='string'
+)
+```
+
+**Parameters**
+
+At least one of the following keyword arguments must be specified:
+
+- **bsmLogDuringEvent_config_path** (_string_) \[_optional_\] Relative or absolute path to bsmLogDuringEvent configuration file (see more information in the configuration section below).
+- **rxMsg_config_path** (_string_) \[_optional_\] Relative or absolute path to rxMsg configuration file.
+- **dnsMsg_config_path** (_string_) \[_optional_\] Relative or absolute path to dnsMsg configuration file.
+- **bsmTx_config_path** (_string_) \[_optional_\] Relative or absolute path to bsmTx configuration file.
+- **driverAlert_config_path** (_string_) \[_optional_\] Relative or absolute path to driverAlert configuration file.
+
+**Return Type**
+
+`Object`
+
+**Usage Example**
+```
+test_case_config = TestCaseConfig(
+  bsmLogDuringEvent_config_path='./config/bsmLogDuringEvent.ini',
+  rxMsg_config_path='./config/rxMsg.ini',
+  dnsMsg_config_path='./config/dnsMsg.ini',
+  bsmTx_config_path='./config/bsmTx.ini',
+  driverAlert='./config/driverAlert.ini'
+)
 ```
 
 ### `.validate(**kwargs)`
