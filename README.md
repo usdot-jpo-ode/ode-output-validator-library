@@ -6,10 +6,10 @@ The shared library manages all validation checks and constraints are defined in 
 
 ## Installation
 
-TODO - Analyze value of pip support
+Using pip:
 
 ```
-pip install odevalidator
+pip install git+https://github.com/usdot-jpo-ode/ode-output-validator-library.git --upgrade
 ```
 
 Once you have the package installed, import the TestCase class.
