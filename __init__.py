@@ -3,19 +3,13 @@ import dateutil.parser
 import json
 import logging
 from decimal import Decimal
+from result import ValidationResult, ValidatorException
+from sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
 TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
-
-class ValidatorException(Exception):
-    pass
-
-class ValidationResult:
-    def __init__(self, valid, error):
-        self.valid = valid
-        self.error = error
 
 class Field:
     def __init__(self, field):
@@ -115,4 +109,10 @@ class TestCase:
                 'RecordID': record_id,
                 'Validations': field_validations
             })
+
+        seq = Sequential()
+        sorted_list = sorted(msg_queue, key=lambda msg: (json.loads(msg)['metadata']['logFileName'], json.loads(msg)['metadata']['serialId']['recordId']))
+
+        results.extend(seq.perform_sequential_validations(sorted_list))
+
         return {'Results': results}

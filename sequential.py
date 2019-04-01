@@ -1,6 +1,7 @@
 import json
 import dateutil.parser
 import copy
+from __init__ import ValidationResult
 
 class Sequential:
     def __init__(self):
@@ -17,8 +18,9 @@ class Sequential:
 
         one_list = []
         one_list.append(firstRecord)
-        is_valid = True
+        record_id = 0
         record_num = 1
+        validation_result = []
         for record in sorted_record_list[1:]:
             record_num += 1
             new_log_file_name = record['metadata']['logFileName']
@@ -30,24 +32,23 @@ class Sequential:
             if old_log_file_name == new_log_file_name:
                 one_list.append(record)
                 if new_record_id != old_record_id+1:
-                    is_valid = False
-                    print("WARNING! Detected incorrectly incremented recordId. Record Number: '%d' Expected '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id))
-                    print(record)
+                    record_id = new_record_id
+                    validation_result.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id), record))
                 if new_serial_number != old_serial_number+1:
-                    is_valid = False
-                    print("WARNING! Detected incorrectly incremented serialNumber. Record Number: '%d' Expected '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number))
-                    print(record)
+                    record_id = new_record_id
+                    validation_result.append(ValidationResult(False, "Detected incorrectly incremented serialNumber. Record Number: '%d' Expected '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number), record))
                 if new_record_generated_at < old_record_generated_at:
-                    is_valid = False
-                    print("WARNING! Detected non-chronological recordGeneratedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_record_generated_at, new_record_generated_at))
+                    record_id = new_record_id
+                    validation_result.append(ValidationResult(False, "Detected non-chronological recordGeneratedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_record_generated_at, new_record_generated_at), record))
                 if new_ode_received_at < old_ode_received_at:
-                    is_valid = False
-                    print("WARNING! Detected non-chronological odeReceivedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_ode_received_at, new_ode_received_at))
-                    print(record)
+                    record_id = new_record_id
+                    validation_result.append(ValidationResult(False, "Detected non-chronological odeReceivedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_ode_received_at, new_ode_received_at), record))
             else:
-                print("New log file detected. Resetting old item values. Record Number: '%d' Old filename: '%s', new filename: '%s'" % (record_num, old_log_file_name, new_log_file_name))
-                if not self.validate_bundle_size(one_list):
-                    is_valid = False
+                #validation_result.append(ValidationResult(True, "New log file detected. Resetting old item values. Record Number: '%d' Old filename: '%s', new filename: '%s'" % (record_num, old_log_file_name, new_log_file_name)))
+                bundle_size_validation_result = self.validate_bundle_size(one_list)
+                if bundle_size_validation_result.__len__() > 0:
+                    validation_result.extend(bundle_size_validation_result)
+                    record_id = new_record_id
                     break
                 one_list.clear()
                 one_list.append(record)
@@ -58,16 +59,17 @@ class Sequential:
             old_record_generated_at = new_record_generated_at
             old_ode_received_at = new_ode_received_at
 
-            if not is_valid:
+            if record_id == 0:
                 break
             
-        return is_valid
+        return validation_result
 
     def validate_bundle_size(self, sorted_record_list):
-        is_valid = True
+        record_id = 0
         first_record_id = int(sorted_record_list[0]['metadata']['serialId']['recordId'])
         last_record_id = int(sorted_record_list[-1]['metadata']['serialId']['recordId'])
 
+        validation_result = []
         # partial or full list?
         if first_record_id == 1:
             # head of a partial list?
@@ -78,14 +80,14 @@ class Sequential:
                     record_num += 1
                     bundle_size = int(record['metadata']['serialId']['bundleSize'])
                     if sorted_record_list.len() != bundle_size:
-                        print("WARNING! buldleSize doesn't match number of records. Record Number: '%d' record length: '%d' != bundlSize: '%d'" % (record_num, sorted_record_list.len(), bundle_size))
-                        is_valid = False
+                        validation_result.append(ValidationResult(False, "buldleSize doesn't match number of records. Record Number: '%d' record length: '%d' != bundlSize: '%d'" % (record_num, sorted_record_list.len(), bundle_size)))
+                        record_id = int(record['metadata']['serialId']['recordId'])
                         break
 
                 bundle_size = int(sorted_record_list[0]['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size:
-                    print("WARNING! buldleSize doesn't match the last recordId. Record Number: '%d' Last recordId: '%d' != bundlSize: '%d'" % (record_num, last_record_id, bundle_size))
-                    is_valid = False
+                    validation_result.append(ValidationResult(False, "buldleSize doesn't match the last recordId. Record Number: '%d' Last recordId: '%d' != bundlSize: '%d'" % (record_num, last_record_id, bundle_size)))
+                    record_id = last_record_id
         else:
             # tail of a partial list
             record_num = 0
@@ -93,11 +95,11 @@ class Sequential:
                 record_num += 1
                 bundle_size = int(record['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size:
-                    print("WARNING! buldleSize doesn't match last recordId. Record Number: '%d' last recordId: '%d' != bundleSize: '%d'" % (record_num, last_record_id, bundle_size))
-                    is_valid = False
+                    validation_result.append(ValidationResult(False, "buldleSize doesn't match last recordId. Record Number: '%d' last recordId: '%d' != bundleSize: '%d'" % (record_num, last_record_id, bundle_size), record))
+                    record_id = last_record_id
                     break
 
-        return is_valid
+        return validation_result
 
 def main():
     seq = Sequential()
@@ -108,7 +110,7 @@ def main():
     # test happy path
     record_list = build_happy_path(json_seed)
     result = seq.perform_sequential_validations(record_list)
-    print("Happy Path result: %s" %(result))
+    for x in result: x.print()
 
     # test missing/duplicate recordId
     record_list_missing = copy.deepcopy(record_list)
@@ -116,14 +118,14 @@ def main():
     for record in record_list_missing[1:]:
         record['metadata']['serialId']['recordId'] = prev_record['metadata']['serialId']['recordId']
     result = seq.perform_sequential_validations(record_list_missing)
-    print("Missing/dups result: %s" %(result))
+    for x in result: x.print()
 
     # test invalid bundleSize
-    record_list_invalid_buncldeSize = copy.deepcopy(record_list)
-    for record in record_list_invalid_buncldeSize:
+    record_list_invalid_bundleSize = copy.deepcopy(record_list)
+    for record in record_list_invalid_bundleSize:
         record['metadata']['serialId']['bundleSize'] = 9999
-    result = seq.perform_sequential_validations(record_list_invalid_buncldeSize)
-    print("Invalid Bundle Size result: %s" %(result))
+    result = seq.perform_sequential_validations(record_list_invalid_bundleSize)
+    for x in result: x.print()
 
 
 def build_happy_path(json_seed):
