@@ -3,6 +3,7 @@ import dateutil.parser
 import json
 import logging
 from decimal import Decimal
+from sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
@@ -55,6 +56,7 @@ class Field:
             return value
         except AttributeError as e:
             print("[ERROR] Could not find field with path '%s' in message: '%s'" % (self.path, data))
+            print("Cause: " % e)
             raise SystemExit
 
     def validate(self, data):
@@ -106,12 +108,25 @@ class TestCase:
                 self.field_list.append(Field(config[key]))
 
     def validate(self, data, logger):
-        validations_failed = 0
-        for field in self.field_list:
-            result = field.validate(data)
-            if result.valid == True:
-                logger.info('[PASSED] Field: %s' % field.path)
-            else:
-                validations_failed += 1
-                logger.info('[-FAILED-] Field: %s; Failure: %s' % (field.path, result.error))
-        return RecordValidationSummary(validations_failed, len(self.field_list))
+        for record in data:
+            validations_failed = 0
+            # validate individual fields
+            for field in self.field_list:
+                result = field.validate(record)
+                if result.valid == True:
+                    logger.info('[PASSED] Field: %s' % field.path)
+                else:
+                    validations_failed += 1
+                    logger.info('[-FAILED-] Field: %s; Failure: %s' % (field.path, result.error))
+
+        seq = Sequential()
+        sorted_list = sorted(data, key=lambda msg: (json.loads(msg)['metadata']['logFileName'], json.loads(msg)['metadata']['serialId']['recordId']))
+
+        if seq.perform_sequential_validations(sorted_list):
+            logger.info('[PASSED] Sequenctial Validations')
+        else:
+            validations_failed += 1
+            logger.info('[-FAILED-] Sequenctial Validations')
+
+        return RecordValidationSummary(validations_failed, len(self.field_list) + 1)
+
