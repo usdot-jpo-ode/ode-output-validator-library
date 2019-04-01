@@ -3,6 +3,7 @@ import dateutil.parser
 import json
 import logging
 from decimal import Decimal
+import queue
 from result import ValidationResult, ValidatorException
 from sequential import Sequential
 
@@ -79,14 +80,14 @@ class Field:
 
 class TestCase:
     def __init__(self, filepath):
-        config = configparser.ConfigParser()
-        config.read(filepath)
+        self.config = configparser.ConfigParser()
+        self.config.read(filepath)
         self.field_list = []
-        for key in config.sections():
+        for key in self.config.sections():
             if key == "_settings":
                 continue
             else:
-                self.field_list.append(Field(config[key]))
+                self.field_list.append(Field(self.config[key]))
 
     def _validate(self, data):
         validations = []
@@ -101,8 +102,10 @@ class TestCase:
 
     def validate_queue(self, msg_queue):
         results = []
+        msg_list = []
         while not msg_queue.empty():
             current_msg = json.loads(msg_queue.get())
+            msg_list.append(current_msg)
             record_id = str(current_msg['metadata']['serialId']['recordId'])
             field_validations = self._validate(current_msg)
             results.append({
@@ -111,8 +114,35 @@ class TestCase:
             })
 
         seq = Sequential()
-        sorted_list = sorted(msg_queue, key=lambda msg: (json.loads(msg)['metadata']['logFileName'], json.loads(msg)['metadata']['serialId']['recordId']))
+        sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
 
         results.extend(seq.perform_sequential_validations(sorted_list))
 
         return {'Results': results}
+
+# main function using old functionality
+def test():
+    config_file = "samples/bsmTx.ini"
+    data_file = "samples/bsmTx.json"
+    # Parse test config and create test case
+    validator = TestCase(config_file)
+
+    print("[START] Beginning test routine referencing configuration file '%s'." % data_file)
+
+    with open(data_file) as f:
+        content = f.readlines()
+
+    # remove whitespace characters like `\n` at the end of each line
+    content = [x.strip() for x in content] 
+    #msgs = [json.loads(line) for line in content]
+
+    q = queue.Queue()
+    for msg in content:
+        q.put(msg)
+
+    results = validator.validate_queue(q)    
+
+    print(results)
+
+if __name__ == '__main__':
+    test()
