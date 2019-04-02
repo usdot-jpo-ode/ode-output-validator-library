@@ -9,7 +9,7 @@ class ValidationResult:
         self.error = error
         self.record = record
 
-    def print(self):
+    def _print(self):
         print(json.dumps(self.toJson()))
 
     def toJson(self):
