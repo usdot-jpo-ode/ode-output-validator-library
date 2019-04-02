@@ -116,18 +116,38 @@ class TestCase:
         seq = Sequential()
         sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
 
-        results.extend(seq.perform_sequential_validations(sorted_list))
+        sequential_validations = []
+        for x in seq.perform_sequential_validations(sorted_list):
+            if x.record and x.error:
+                sequential_validations.append({
+                    'RecordID': x.record['metadata']['serialId']['recordId'],
+                    'Validations': x.error
+                })
+
+        results.extend(sequential_validations)
 
         return {'Results': results}
 
 # main function using old functionality
 def test():
     config_file = "samples/bsmTx.ini"
-    data_file = "samples/bsmTx.json"
     # Parse test config and create test case
     validator = TestCase(config_file)
 
-    print("[START] Beginning test routine referencing configuration file '%s'." % data_file)
+    print("[START] Beginning test routine referencing configuration file '%s'." % config_file)
+
+    data_file = "samples/bsmTxGood.json"
+    print("[START] Testing a good data file '%s'." % data_file)
+    results = test_file(validator, data_file)
+    print(results)
+
+    data_file = "samples/bsmTxBad.json"
+    results = test_file(validator, data_file)
+    print(results)
+
+# main function using old functionality
+def test_file(validator, data_file):
+    print("Testing '%s'." % data_file)
 
     with open(data_file) as f:
         content = f.readlines()
@@ -142,7 +162,7 @@ def test():
 
     results = validator.validate_queue(q)    
 
-    print(results)
+    return results
 
 if __name__ == '__main__':
     test()

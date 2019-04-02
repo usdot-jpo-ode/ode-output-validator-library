@@ -18,7 +18,6 @@ class Sequential:
 
         one_list = []
         one_list.append(firstRecord)
-        is_valid = True
         record_num = 1
         validation_results = []
         for record in sorted_record_list[1:]:
@@ -32,23 +31,17 @@ class Sequential:
             if old_log_file_name == new_log_file_name:
                 one_list.append(record)
                 if new_record_id != old_record_id+1:
-                    is_valid = False
-                    validation_results.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id), record))
+                    validation_results.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected recordId '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id), record))
                 if new_serial_number != old_serial_number+1:
-                    is_valid = False
-                    validation_results.append(ValidationResult(False, "Detected incorrectly incremented serialNumber. Record Number: '%d' Expected '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number), record))
+                    validation_results.append(ValidationResult(False, "Detected incorrectly incremented serialNumber. Record Number: '%d' Expected recordId '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number), record))
                 if new_record_generated_at < old_record_generated_at:
-                    is_valid = False
                     validation_results.append(ValidationResult(False, "Detected non-chronological recordGeneratedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_record_generated_at, new_record_generated_at), record))
                 if new_ode_received_at < old_ode_received_at:
-                    is_valid = False
                     validation_results.append(ValidationResult(False, "Detected non-chronological odeReceivedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_ode_received_at, new_ode_received_at), record))
             else:
                 bundle_size_validation_results = self.validate_bundle_size(one_list)
-                if len(bundle_size_validation_results) >= 1 and bundle_size_validation_results[0].valid == False:
+                if bundle_size_validation_results[0].valid == False:
                     validation_results.extend(bundle_size_validation_results)
-                    is_valid = False
-                    break
                 one_list.clear()
                 one_list.append(record)
 
@@ -58,11 +51,9 @@ class Sequential:
             old_record_generated_at = new_record_generated_at
             old_ode_received_at = new_ode_received_at
 
-            if not is_valid:
-                break
-        
-        if is_valid:
-            validation_results.append(ValidationResult(True, "Validation SUCCESSFUL", ""))
+       
+        if len(validation_results) == 0:
+            validation_results.append(ValidationResult(True))
 
         return validation_results
 
@@ -72,7 +63,6 @@ class Sequential:
         bundle_size = int(sorted_record_list[0]['metadata']['serialId']['bundleSize'])
 
         validation_results = []
-        is_valid = True
         # partial or full list?
         if first_record_id == 0:
             # head of a partial list?
@@ -82,24 +72,19 @@ class Sequential:
                     bundle_size = int(record['metadata']['serialId']['bundleSize'])
                     if len(sorted_record_list) != bundle_size:
                         validation_results.append(ValidationResult(False, "bundleSize doesn't match number of records. recordId: '%d' record length: '%d' != bundlSize: '%d'" % (record['metadata']['serialId']['recordId'], len(sorted_record_list), bundle_size)))
-                        is_valid = False
-                        break
 
                 bundle_size = int(sorted_record_list[0]['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size-1:
                     validation_results.append(ValidationResult(False, "bundleSize doesn't match the last recordId of a full set. recordId: '%d' Last recordId: '%d' != bundlSize: '%d'" % (record['metadata']['serialId']['recordId'], last_record_id, bundle_size)))
-                    is_valid = False
         else:
             # tail of a partial list
             for record in sorted_record_list:
                 bundle_size = int(record['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size-1:
                     validation_results.append(ValidationResult(False, "bundleSize doesn't match last recordId of a tail set. recordId: '%d' last recordId: '%d' != bundleSize: '%d'" % (record['metadata']['serialId']['recordId'], last_record_id, bundle_size), record))
-                    is_valid = False
-                    break
 
-        if is_valid:
-            validation_results.append(ValidationResult(True, "bundleSize Validation SUCCESSFUL", ""))
+        if len(validation_results) == 0:
+            validation_results.append(ValidationResult(True))
 
         return validation_results
 
