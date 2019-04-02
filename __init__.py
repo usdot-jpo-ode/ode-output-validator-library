@@ -116,15 +116,18 @@ class TestCase:
         seq = Sequential()
         sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
 
-        sequential_validations = []
-        for x in seq.perform_sequential_validations(sorted_list):
-            if x.record and x.error:
-                sequential_validations.append({
-                    'RecordID': x.record['metadata']['serialId']['recordId'],
-                    'Validations': x.error
-                })
+        sequential_validations = seq.perform_sequential_validations(sorted_list)
+        serialized = []
+        for x in sequential_validations:
+            serialized.append({
+                'Valid': x.valid,
+                'Details': x.error
+            })
 
-        results.extend(sequential_validations)
+        results.append({
+                    'RecordID': -1,
+                    'Validations': serialized
+                })
 
         return {'Results': results}
 
@@ -137,7 +140,6 @@ def test():
     print("[START] Beginning test routine referencing configuration file '%s'." % config_file)
 
     data_file = "samples/bsmTxGood.json"
-    print("[START] Testing a good data file '%s'." % data_file)
     results = test_file(validator, data_file)
     print(results)
 
