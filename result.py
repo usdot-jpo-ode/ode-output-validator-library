@@ -10,6 +10,7 @@ class ValidationResult:
         self.record = record
 
     def print(self):
-        json_val = {"Valid": self.valid, "Error": self.error, "Record": self.record}
-        print(json.dumps(json_val))
+        print(json.dumps(self.toJson()))
 
+    def toJson(self):
+        return {"Valid": self.valid, "Error": self.error, "Record": self.record}
