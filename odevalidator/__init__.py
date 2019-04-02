@@ -3,19 +3,14 @@ import dateutil.parser
 import json
 import logging
 from decimal import Decimal
+import queue
+from result import ValidationResult, ValidatorException
+from sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
 TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
-
-class ValidatorException(Exception):
-    pass
-
-class ValidationResult:
-    def __init__(self, valid, error):
-        self.valid = valid
-        self.error = error
 
 class Field:
     def __init__(self, field):
@@ -85,14 +80,14 @@ class Field:
 
 class TestCase:
     def __init__(self, filepath):
-        config = configparser.ConfigParser()
-        config.read(filepath)
+        self.config = configparser.ConfigParser()
+        self.config.read(filepath)
         self.field_list = []
-        for key in config.sections():
+        for key in self.config.sections():
             if key == "_settings":
                 continue
             else:
-                self.field_list.append(Field(config[key]))
+                self.field_list.append(Field(self.config[key]))
 
     def _validate(self, data):
         validations = []
@@ -107,12 +102,69 @@ class TestCase:
 
     def validate_queue(self, msg_queue):
         results = []
+        msg_list = []
         while not msg_queue.empty():
             current_msg = json.loads(msg_queue.get())
+            msg_list.append(current_msg)
             record_id = str(current_msg['metadata']['serialId']['recordId'])
             field_validations = self._validate(current_msg)
             results.append({
                 'RecordID': record_id,
                 'Validations': field_validations
             })
+
+        seq = Sequential()
+        sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
+
+        sequential_validations = seq.perform_sequential_validations(sorted_list)
+        serialized = []
+        for x in sequential_validations:
+            serialized.append({
+                'Valid': x.valid,
+                'Details': x.error
+            })
+
+        results.append({
+                    'RecordID': -1,
+                    'Validations': serialized
+                })
+
         return {'Results': results}
+
+# main function using old functionality
+def test():
+    config_file = "samples/bsmTx.ini"
+    # Parse test config and create test case
+    validator = TestCase(config_file)
+
+    print("[START] Beginning test routine referencing configuration file '%s'." % config_file)
+
+    data_file = "samples/bsmTxGood.json"
+    results = test_file(validator, data_file)
+    print(results)
+
+    data_file = "samples/bsmTxBad.json"
+    results = test_file(validator, data_file)
+    print(results)
+
+# main function using old functionality
+def test_file(validator, data_file):
+    print("Testing '%s'." % data_file)
+
+    with open(data_file) as f:
+        content = f.readlines()
+
+    # remove whitespace characters like `\n` at the end of each line
+    content = [x.strip() for x in content] 
+    #msgs = [json.loads(line) for line in content]
+
+    q = queue.Queue()
+    for msg in content:
+        q.put(msg)
+
+    results = validator.validate_queue(q)    
+
+    return results
+
+if __name__ == '__main__':
+    test()

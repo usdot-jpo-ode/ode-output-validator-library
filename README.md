@@ -9,7 +9,7 @@ The shared library manages all validation checks and constraints are defined in 
 TODO - Analyze value of pip support
 
 ```
-pip install odevalidator
+pip install .
 ```
 
 Once you have the package installed, import the TestCase class.
@@ -198,3 +198,7 @@ LowerLimit = -123
 - `UpperLimit` \[_optional_\]
   - Summary: Used with decimal types to specify the highest acceptable value for this field
   - Value: decimal number: `UpperLimit = 150.43`
+
+**[Sample Files](samples)**
+- [Sample Configuration File](samples/bsmTx.ini)
+- [Sample Data File](bsmTx.json)
