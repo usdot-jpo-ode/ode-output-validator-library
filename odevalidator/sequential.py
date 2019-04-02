@@ -27,7 +27,7 @@ class Sequential:
             new_serial_number = int(record['metadata']['serialId']['serialNumber'])
             new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt'])
             new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
-            
+
             if old_log_file_name == new_log_file_name:
                 one_list.append(record)
                 if new_record_id != old_record_id+1:
@@ -51,7 +51,7 @@ class Sequential:
             old_record_generated_at = new_record_generated_at
             old_ode_received_at = new_ode_received_at
 
-       
+
         if len(validation_results) == 0:
             validation_results.append(ValidationResult(True))
 
@@ -98,7 +98,7 @@ def test():
     print("Testing Happy Path ...")
     record_list = build_happy_path(json_seed)
     result = seq.perform_sequential_validations(record_list)
-    for x in result: x.print()
+    for x in result: x._print()
 
     # test missing/duplicate recordId
     print("Testing Missing/Duplicate recordIds ...")
@@ -107,7 +107,7 @@ def test():
     for record in record_list_missing[1:]:
         record['metadata']['serialId']['recordId'] = prev_record['metadata']['serialId']['recordId']
     result = seq.perform_sequential_validations(record_list_missing)
-    for x in result: x.print()
+    for x in result: x._print()
 
     # test invalid bundleSize
     print("Testing Invalid bundleSize ...")
@@ -115,7 +115,7 @@ def test():
     for record in record_list_invalid_bundleSize:
         record['metadata']['serialId']['bundleSize'] = 9999
     result = seq.perform_sequential_validations(record_list_invalid_bundleSize)
-    for x in result: x.print()
+    for x in result: x._print()
 
 
 def build_happy_path(json_seed):
