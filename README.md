@@ -2,11 +2,70 @@
 
 Contains shared library functions for validating ODE message output schemas and constraints.
 
-The shared library manages all validation checks and constraints are defined in a configuration ini file.
+## Summary
+
+Messages produced by the ODE have a specific structure, the purpose of this library is to check that the actual messages produced match that structure. This is a black box tool that takes a list of messages, processes them internally, and returns a results object containing validation details of each field of each message.
+
+The constraints on the messages can be considered in two categories as outlined in the **Testing Details and Limitations** section: stateless and stateful checks. Stateless checks are user-configured using the configuration file as detailed in the **Configuration** section, and stateful checks are performed automatically.
+
+
+## Testing Details and Limitations
+
+### Testing Details
+
+There are two general types of checks: stateless and stateful checks. Users may configure the stateless checks and may invoke the stateful checks by passing a list of messages.
+
+#### 1. Configurable, explicit, stateless checks
+
+A stateless check is the most simple form of check. Simple constraints are defined for single fields in single messages. One of the most basic checks is the EqualsValue check, which looks at a single field in the message and makes sure that it equals something specific. For example if you define your field like this:
+
+```editor-config
+[logFileName]
+Path = metadata.logFileName
+Type = string
+EqualsValue = bsmLogDuringEvent.gz
+```
+
+And if you receive a message that looks like this:
+
+```json
+{
+	"metadata": {
+		"logFileName": "bsmLogDuringEvent.gz"
+	}
+}
+```
+
+Then the validation library will search the message using the path `metadata.logFileName`, where it will find that the value is set to `bsmLogDuringEvent.gz`. This is exactly equal to the value set in the configuration, so the validation will pass.
+
+Supported stateless checks:
+
+1. Field exists and is not empty (implicit)
+3. Field is a specific value
+4. Field is one of several specific values
+5. Field value is in a certain range
+
+#### 2. Non-configurable, implicit, stateful checks
+
+The validation library accepts messages in a list format so that it may validate properties of the list as a whole. These checks include:
+
+1. Message serial numbers and record IDs increment by 1 between messages without gaps or duplication
+2. Timestamps from sequential messages are also chronological
+3. Number of records in a list from one specific log file is less than or equal to the bundleSize
+
+These checks require a whole list to be passed in and will vacuously pass when the list has only one message.
+
+### Testing Limitations
+
+The library is designed to encapsulate functionality that is most useful for all users. As a result some additional functionalities are not supported directly by the library and require wrapper code:
+
+1. A test case can only be initialized with one configuration file. Data files with multiple types of messages will require separate TestCases objects for each message type.
+2. Test cases cannot define optional fields. If fields are declared in the configuration file, they must appear in the message or else the validation is considered failed.
+3. Test cases cannot define conditional fields or fields that are only checked if some other state is condition is met.
 
 ## Installation
 
-TODO - Analyze value of pip support
+Pip may be used to install the library locally, or by using pip to manage and pull the library from Github directly.
 
 ```
 pip install .
@@ -28,13 +87,13 @@ Creates a configured test case object that can be used for validation.
 
 ```
 test_case = TestCase(
-  test_case_config=TestCaseConfig()
+  filepath='string'
 )
 ```
 
 **Parameters**
 
-- **test_case_config** (_string_) \[REQUIRED\] Test case configuration object (see TestCaseConfig below).
+- **filepath** (_string_) \[_optional_\] Relative or absolute path to the configuration file (see more information in the configuration section below).
 
 **Return Type**
 
@@ -42,48 +101,7 @@ test_case = TestCase(
 
 **Usage Example**
 ```
-test_case = TestCase(test_case_config)
-```
-
-### `TestCaseConfig(**kwargs)`
-
-Creates a configuration for test cases. Message recordType is extracted during validation and used to determine which validation should be performed.
-
-**Request Syntax**
-
-```
-test_case_config = TestCaseConfig(
-  bsmLogDuringEvent_config_path='string',
-  rxMsg_config_path='string',
-  dnsMsg_config_path='string',
-  bsmTx_config_path='string',
-  driverAlert='string'
-)
-```
-
-**Parameters**
-
-At least one of the following keyword arguments must be specified:
-
-- **bsmLogDuringEvent_config_path** (_string_) \[_optional_\] Relative or absolute path to bsmLogDuringEvent configuration file (see more information in the configuration section below).
-- **rxMsg_config_path** (_string_) \[_optional_\] Relative or absolute path to rxMsg configuration file.
-- **dnsMsg_config_path** (_string_) \[_optional_\] Relative or absolute path to dnsMsg configuration file.
-- **bsmTx_config_path** (_string_) \[_optional_\] Relative or absolute path to bsmTx configuration file.
-- **driverAlert_config_path** (_string_) \[_optional_\] Relative or absolute path to driverAlert configuration file.
-
-**Return Type**
-
-`Object`
-
-**Usage Example**
-```
-test_case_config = TestCaseConfig(
-  bsmLogDuringEvent_config_path='./config/bsmLogDuringEvent.ini',
-  rxMsg_config_path='./config/rxMsg.ini',
-  dnsMsg_config_path='./config/dnsMsg.ini',
-  bsmTx_config_path='./config/bsmTx.ini',
-  driverAlert='./config/driverAlert.ini'
-)
+test_case = TestCase("./config/bsmLogDuringEvent.ini")
 ```
 
 ### `.validate(**kwargs)`
