@@ -125,6 +125,9 @@ results = test_case.validate(
 `dict`
 
 **Response Syntax**
+The following are examples of a stateless and stateful responses:
+
+***Stateless***
 ```
 { 'Results': [
     {
@@ -139,15 +142,29 @@ results = test_case.validate(
 }
 ```
 
+***Stateful***
+```
+{ 'Results': [
+    {
+      'RecordID': -1,
+      'Validations': [
+        {
+          'Valid': True|False,
+          'Details': 'string'
+        }]
+    }]
+}
+```
+
 **Response Structure**
 
 - (_dict_)
   - **Results** (_list_)
     - (_dict_)
-      - **RecordID** (_string_) Index of the message, taken from recordId metadata field.
+      - **RecordID** (_string_) Index of the message, taken from recordId metadata field. _For stateful contextual checks, the value of this field will be set to -1._
       - **Validations** (_list_) List of validation results for each analyzed field.
         - (_dict_)
-          - **Field** (_string_) Path or name of the analyzed field.
+          - **Field** (_string_) [Optional] Path or name of the analyzed field. _For stateful contextual checks, the this field will be missing._
           - **Valid** (_boolean_) Whether the field passed validation (True) or failed (False).
           - **Details** (_string_) Further information about the check, including error messages if the check failed.
 
