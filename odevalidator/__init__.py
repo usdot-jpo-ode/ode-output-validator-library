@@ -80,6 +80,7 @@ class Field:
 
 class TestCase:
     def __init__(self, filepath):
+        assert Path(filepath).is_file(), "Configuration file '%s' could not be found" % filepath
         self.config = configparser.ConfigParser()
         self.config.read(filepath)
         self.field_list = []
@@ -155,14 +156,14 @@ def test_file(validator, data_file):
         content = f.readlines()
 
     # remove whitespace characters like `\n` at the end of each line
-    content = [x.strip() for x in content] 
+    content = [x.strip() for x in content]
     #msgs = [json.loads(line) for line in content]
 
     q = queue.Queue()
     for msg in content:
         q.put(msg)
 
-    results = validator.validate_queue(q)    
+    results = validator.validate_queue(q)
 
     return results
 
