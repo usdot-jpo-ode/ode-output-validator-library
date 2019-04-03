@@ -3,4 +3,4 @@
 /.vs/ode-output-validator-library/v15/*.suo
 /*.pyproj
 /*.sln
-/__pycache__/*.pyc
+*.pyc
