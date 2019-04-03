@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "Starting all tests..."
 echo "====="
-python odevalidator/__init__.py
+python odevalidator/validator.py
 echo "====="
 echo "Testing complete."
