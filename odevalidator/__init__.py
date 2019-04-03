@@ -3,6 +3,7 @@ import dateutil.parser
 import json
 import logging
 from decimal import Decimal
+from pathlib import Path
 import queue
 from result import ValidationResult, ValidatorException
 from sequential import Sequential
