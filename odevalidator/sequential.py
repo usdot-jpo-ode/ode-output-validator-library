@@ -1,7 +1,7 @@
 import json
 import dateutil.parser
 import copy
-from result import ValidationResult
+from odevalidator.result import ValidationResult
 
 class Sequential:
     def __init__(self):
