@@ -5,8 +5,8 @@ import logging
 from decimal import Decimal
 from pathlib import Path
 import queue
-from odevalidator.result import ValidationResult, ValidatorException
-from odevalidator.sequential import Sequential
+from .result import ValidationResult, ValidatorException
+from .sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
@@ -157,14 +157,14 @@ def test_file(validator, data_file):
         content = f.readlines()
 
     # remove whitespace characters like `\n` at the end of each line
-    content = [x.strip() for x in content] 
+    content = [x.strip() for x in content]
     #msgs = [json.loads(line) for line in content]
 
     q = queue.Queue()
     for msg in content:
         q.put(msg)
 
-    results = validator.validate_queue(q)    
+    results = validator.validate_queue(q)
 
     return results
 
