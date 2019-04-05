@@ -8,7 +8,7 @@ import queue
 from collections.abc import Iterable
 
 from odevalidator.result import ValidationResult, ValidatorException
-from sequential import Sequential
+from odevalidator.sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
