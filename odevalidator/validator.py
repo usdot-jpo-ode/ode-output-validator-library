@@ -87,7 +87,7 @@ class Field:
             if 'startsWithField' in equals_value:
                 sw_field_name = equals_value['startsWithField']
                 sw_field_value = _get_field_value(sw_field_name, data)
-                if not data_field_value.startswith(sw_field_value):
+                if sw_field_value and not data_field_value.startswith(sw_field_value):
                     validations.append(ValidationResult(False, "Value of Field '%s' ('%s') does not start with %s" % (self.path, data_field_value, sw_field_value)))
 
             if 'conditions' in equals_value:
@@ -159,7 +159,8 @@ class TestCase:
 
         results.append({
                     'RecordID': -1,
-                    'Validations': serialized
+                    'Validations': serialized,
+                    'Record': "NA"
                 })
 
         return {'Results': results}
@@ -176,20 +177,25 @@ def test():
     results = test_file(validator, data_file)
     print_results(results)
 
-    #data_file = "samples/bsmTxBad.json"
-    #results = test_file(validator, data_file)
-    #print_results(results)
+    data_file = "test/bad.json"
+    results = test_file(validator, data_file)
+    print_results(results)
 
 def print_results(results):
     all_good = True
     print("========")
+    jsonprint = []
     for res in results['Results']:
         for val in res['Validations']:
             if not val['Valid']:
                 all_good = False
-                print({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
+                jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
     if all_good:
         print("Results: SUCCESS")
+    else:
+        print(jsonprint)
+        print("TOTAL FAILURES: %d" % len(jsonprint))
+
     print("========")
 
 

@@ -39,13 +39,13 @@ class Sequential:
             new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
 
             if new_record_id != old_record_id+1:
-                validation_results.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected recordId '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id), record))
+                validation_results.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected recordId '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id)))
             if new_serial_number != old_serial_number+1:
-                validation_results.append(ValidationResult(False, "Detected incorrectly incremented serialNumber. Record Number: '%d' Expected serialNumber '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number), record))
+                validation_results.append(ValidationResult(False, "Detected incorrectly incremented serialNumber. Record Number: '%d' Expected serialNumber '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number)))
             if new_record_generated_at < old_record_generated_at:
-                validation_results.append(ValidationResult(False, "Detected non-chronological recordGeneratedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_record_generated_at, new_record_generated_at), record))
+                validation_results.append(ValidationResult(False, "Detected non-chronological recordGeneratedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_record_generated_at, new_record_generated_at)))
             if new_ode_received_at < old_ode_received_at:
-                validation_results.append(ValidationResult(False, "Detected non-chronological odeReceivedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_ode_received_at, new_ode_received_at), record))
+                validation_results.append(ValidationResult(False, "Detected non-chronological odeReceivedAt. Record Number: '%d' Previous timestamp was '%s' but current timestamp is '%s'" % (record_num, old_ode_received_at, new_ode_received_at)))
 
             old_record_id = new_record_id
             old_serial_number = new_serial_number
@@ -80,7 +80,7 @@ class Sequential:
             for record in sorted_bundle:
                 bundle_size = int(record['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size-1:
-                    validation_results.append(ValidationResult(False, "bundleSize doesn't match last recordId of a tail set. recordId: '%d' last recordId: '%d' != bundleSize: '%d'" % (record['metadata']['serialId']['recordId'], last_record_id, bundle_size), record))
+                    validation_results.append(ValidationResult(False, "bundleSize doesn't match last recordId of a tail set. recordId: '%d' last recordId: '%d' != bundleSize: '%d'" % (record['metadata']['serialId']['recordId'], last_record_id, bundle_size)))
 
         return validation_results
 
