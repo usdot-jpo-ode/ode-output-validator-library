@@ -122,6 +122,7 @@ class TestCase:
         serialized = []
         for x in sequential_validations:
             serialized.append({
+                'Field': "SequentialCheck",
                 'Valid': x.valid,
                 'Details': x.error
             })
