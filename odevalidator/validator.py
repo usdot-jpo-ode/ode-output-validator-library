@@ -107,7 +107,7 @@ class Field:
 
 
 class TestCase:
-    def __init__(self, filepath):
+    def __init__(self, filepath="odevalidator/config.ini"):
         assert Path(filepath).is_file(), "Configuration file '%s' could not be found" % filepath
         self.config = configparser.ConfigParser()
         self.config.read(filepath)
@@ -134,7 +134,7 @@ class TestCase:
         msg_list = []
         while not msg_queue.empty():
             line = msg_queue.get()
-            if line and not line.startswith("#"):
+            if line and not str.startswith(str(line), '#'):
                 current_msg = json.loads(line)
                 msg_list.append(current_msg)
                 record_id = str(current_msg['metadata']['serialId']['recordId'])
@@ -167,11 +167,9 @@ class TestCase:
 
 # main function using old functionality
 def test():
-    config_file = "odevalidator/config.ini"
+    #config_file = "odevalidator/config.ini"
     # Parse test config and create test case
-    validator = TestCase(config_file)
-
-    print("[START] Beginning test routine referencing configuration file '%s'." % config_file)
+    validator = TestCase()
 
     data_file = "test/good.json"
     results = test_file(validator, data_file)
