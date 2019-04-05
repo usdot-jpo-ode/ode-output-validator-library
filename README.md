@@ -223,7 +223,107 @@ LowerLimit = -123
       - Values of this type will be validated by testing for parsability
 - `EqualsValue` \[_optional_\]
   - Summary: Sets the expected value of this field, will fail if the value does not match this
-  - Value: Expected value: `EqualsValue = us.dot.its.jpo.ode.model.OdeBsmPayload`
+  - Value: Expected value: 
+Here's an example with conditional requirements. 
+```
+[payloadType]
+Path = metadata.payloadType
+Type = string
+EqualsValue = {"conditions":[{"ifPart":{"fieldName":"metadata.recordType","fieldValues":["bsmLogDuringEvent","bsmTx"]},"thenPart":["us.dot.its.jpo.ode.model.OdeBsmPayload"]},{"ifPart":{"fieldName":"metadata.recordType","fieldValues":["dnMsg"]},"thenPart":["us.dot.its.jpo.ode.model.OdeTimPayload"]},{"ifPart":{"fieldName":"metadata.recordType","fieldValues":["driverAlert"]},"thenPart":["us.dot.its.jpo.ode.model.OdeDriverAlertPayload"]},{"ifPart":{"fieldName":"metadata.receivedMessageDetails.rxSource","fieldValues":["RV"]},"thenPart":["us.dot.its.jpo.ode.model.OdeBsmPayload"]},{"ifPart":{"fieldName":"metadata.receivedMessageDetails.rxSource","fieldValues":["RSU","SAT","SNMP","NA"]},"thenPart":["us.dot.its.jpo.ode.model.OdeTimPayload"]}]}
+
+```
+
+Below is the EqualsValue in a more readable JSON format. This specifies that
+`payloadType` must match the value given in `thenPart` depending on the value of
+`metadata.recordType`. So
+- if `metadata.recordType` is either `bsmLogDuringEvent` or `bsmTx`, 
+`payloadType` must be `us.dot.its.jpo.ode.model.OdeBsmPayload`.
+- if `metadata.recordType` is `dnMsg`, 
+`payloadType` must be `us.dot.its.jpo.ode.model.OdeTimPayload`.
+- if `metadata.recordType` is `driverAlert`, 
+`payloadType` must be `us.dot.its.jpo.ode.model.OdeDriverAlertPayload`.
+- if `metadata.receivedMessageDetails.rxSource` is `RV`, 
+`payloadType` must be `us.dot.its.jpo.ode.model.OdeTimPayload`.
+
+```
+{
+  "conditions": [
+    {
+      "ifPart": {
+        "fieldName": "metadata.recordType",
+        "fieldValues": [
+          "bsmLogDuringEvent",
+          "bsmTx"
+        ]
+      },
+      "thenPart": [
+        "us.dot.its.jpo.ode.model.OdeBsmPayload"
+      ]
+    },
+    {
+      "ifPart": {
+        "fieldName": "metadata.recordType",
+        "fieldValues": [
+          "dnMsg"
+        ]
+      },
+      "thenPart": [
+        "us.dot.its.jpo.ode.model.OdeTimPayload"
+      ]
+    },
+    {
+      "ifPart": {
+        "fieldName": "metadata.recordType",
+        "fieldValues": [
+          "driverAlert"
+        ]
+      },
+      "thenPart": [
+        "us.dot.its.jpo.ode.model.OdeDriverAlertPayload"
+      ]
+    },
+    {
+      "ifPart": {
+        "fieldName": "metadata.receivedMessageDetails.rxSource",
+        "fieldValues": [
+          "RV"
+        ]
+      },
+      "thenPart": [
+        "us.dot.its.jpo.ode.model.OdeBsmPayload"
+      ]
+    },
+    {
+      "ifPart": {
+        "fieldName": "metadata.receivedMessageDetails.rxSource",
+        "fieldValues": [
+          "RSU",
+          "SAT",
+          "SNMP",
+          "NA"
+        ]
+      },
+      "thenPart": [
+        "us.dot.its.jpo.ode.model.OdeTimPayload"
+      ]
+    }
+  ]
+}
+```
+Here's another config example:
+```
+[logFileName]
+Path = metadata.logFileName
+Type = string
+EqualsValue = {"startsWithField": "metadata.recordType"}
+```
+This example states that `logFileName` must start with the same string as the value of `metadata.recordType`
+```
+{
+  "startsWithField": "metadata.recordType"
+}
+```
+
 - `Values` \[_optional_\]
   - Summary: Used with enum types to specify the list of possible values that this field must be
   - Value: JSON array with values in quotes: `Values = ["OptionA", "OptionB", ]`

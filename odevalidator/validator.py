@@ -5,13 +5,25 @@ import logging
 from decimal import Decimal
 from pathlib import Path
 import queue
-from .result import ValidationResult, ValidatorException
-from .sequential import Sequential
+from collections.abc import Iterable
+
+from odevalidator.result import ValidationResult, ValidatorException
+from odevalidator.sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
 TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
+
+def _get_field_value(path_str, data):
+    try:
+        path_keys = path_str.split(".")
+        value = data
+        for key in path_keys:
+            value = value.get(key)
+        return value
+    except AttributeError as e:
+        raise ValidatorException("Could not find field with path '%s' in message: '%s'" % (path_str, data))
 
 class Field:
     def __init__(self, field):
@@ -40,44 +52,59 @@ class Field:
         if equals_value is not None:
             self.equals_value = str(equals_value)
 
-    def _get_field_value(self, data):
-        try:
-            path_keys = self.path.split(".")
-            value = data
-            for key in path_keys:
-                value = value.get(key)
-            return value
-        except AttributeError as e:
-            raise ValidatorException("Could not find field with path '%s' in message: '%s'" % (self.path, data))
-
     def validate(self, data):
-        field_value = self._get_field_value(data)
-        if field_value is None:
+        field_value = _get_field_value(self.path, data)
+
+        if hasattr(self, 'equals_value'):
+            result = self.check_value(field_value, data)
+            if len(result) > 0:
+                return result[0]
+        elif field_value is None:
             return ValidationResult(False, "Field '%s' missing" % self.path)
-        if field_value == "":
+        elif field_value == "":
             return ValidationResult(False, "Field '%s' empty" % self.path)
+        elif hasattr(self, 'values') and str(field_value) not in self.values:
+            return ValidationResult(False, "Field '%s' value '%s' not in list of known values: [%s]" % (self.path, str(field_value), ', '.join(map(str, self.values))))
+
         if hasattr(self, 'upper_limit') and Decimal(field_value) > self.upper_limit:
             return ValidationResult(False, "Field '%s' value '%d' is greater than upper limit '%d'" % (self.path, Decimal(field_value), self.upper_limit))
         if hasattr(self, 'lower_limit') and Decimal(field_value) < self.lower_limit:
             return ValidationResult(False, "Field '%s' value '%d' is less than lower limit '%d'" % (self.path, Decimal(field_value), self.lower_limit))
-        if hasattr(self, 'values') and str(field_value) not in self.values:
-            return ValidationResult(False, "Field '%s' value '%s' not in list of known values: [%s]" % (self.path, str(field_value), ', '.join(map(str, self.values))))
-        if hasattr(self, 'equals_value') and str(field_value) != str(self.equals_value):
-            return ValidationResult(False, "Field '%s' value '%s' did not equal expected value '%s'" % (self.path, field_value, self.equals_value))
-        if hasattr(self, 'increment'):
-            if not hasattr(self, 'previous_value'):
-                self.previous_value = field_value
-            else:
-                if field_value != (self.previous_value + self.increment):
-                    result = ValidationResult(False, "Field '%s' successor value '%d' did not match expected value '%d', increment '%d'" % (self.path, field_value, self.previous_value+self.increment, self.increment))
-                    self.previous_value = field_value
-                    return result
+
+
         if self.type == TYPE_TIMESTAMP:
             try:
                 dateutil.parser.parse(field_value)
             except Exception as e:
                 return ValidationResult(False, "Field '%s' value could not be parsed as a timestamp, error: %s" % (self.path, str(e)))
         return ValidationResult(True, "")
+
+    def check_value(self, data_field_value, data):
+        validations = []
+        equals_value = json.loads(self.equals_value)
+        
+        if isinstance(equals_value, Iterable):
+            if 'startsWithField' in equals_value:
+                sw_field_name = equals_value['startsWithField']
+                sw_field_value = _get_field_value(sw_field_name, data)
+                if not data_field_value.startswith(sw_field_value):
+                    validations.append(ValidationResult(False, "Value of Field '%s' ('%s') does not start with %s" % (self.path, data_field_value, sw_field_value)))
+
+            if 'conditions' in equals_value:
+                conditions = equals_value['conditions']
+                for cond in conditions:
+                    if_part = cond['ifPart']
+                    refrenced_field_value = _get_field_value(if_part['fieldName'], data)
+                    expected_field_values = if_part['fieldValues']
+                    if refrenced_field_value in expected_field_values:
+                        # condition is met, so now we can check the value
+                        then_part = cond['thenPart']
+                        if data_field_value not in then_part:
+                            validations.append(ValidationResult(False, "Value of Field '%s' ('%s') in not one of the expected values (%s)" % (self.path, data_field_value, then_part)))
+                        break # since the condition is met, we are done. We should not check other conditions
+
+        return validations
+
 
 class TestCase:
     def __init__(self, filepath):
@@ -141,13 +168,22 @@ def test():
 
     print("[START] Beginning test routine referencing configuration file '%s'." % config_file)
 
-    data_file = "samples/bsmTxGood.json"
-    results = test_file(validator, data_file)
-    print(results)
+    #data_file = "samples/bsmTxGood.json"
+    #results = test_file(validator, data_file)
+    #print_results(results)
 
     data_file = "samples/bsmTxBad.json"
     results = test_file(validator, data_file)
-    print(results)
+    print_results(results)
+
+def print_results(results):
+    for res in results['Results']:
+        for val in res['Validations']:
+            if not val['Valid']:
+                #field = val['Field']
+                #details = val['Details']
+                print("Record ID %s: %s" % (res['RecordID'], val))
+
 
 # main function using old functionality
 def test_file(validator, data_file):
