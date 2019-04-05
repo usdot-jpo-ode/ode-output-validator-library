@@ -8,7 +8,7 @@ import queue
 from collections.abc import Iterable
 
 from odevalidator.result import ValidationResult, ValidatorException
-from odevalidator.sequential import Sequential
+from sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
@@ -100,7 +100,7 @@ class Field:
                         # condition is met, so now we can check the value
                         then_part = cond['thenPart']
                         if data_field_value not in then_part:
-                            validations.append(ValidationResult(False, "Value of Field '%s' ('%s') in not one of the expected values (%s)" % (self.path, data_field_value, then_part)))
+                            validations.append(ValidationResult(False, "Value of Field '%s' ('%s') is not one of the expected values (%s)" % (self.path, data_field_value, then_part)))
                         break # since the condition is met, we are done. We should not check other conditions
 
         return validations
@@ -133,14 +133,16 @@ class TestCase:
         results = []
         msg_list = []
         while not msg_queue.empty():
-            current_msg = json.loads(msg_queue.get())
-            msg_list.append(current_msg)
-            record_id = str(current_msg['metadata']['serialId']['recordId'])
-            field_validations = self._validate(current_msg)
-            results.append({
-                'RecordID': record_id,
-                'Validations': field_validations
-            })
+            line = msg_queue.get()
+            if line and not line.startswith("#"):
+                current_msg = json.loads(line)
+                msg_list.append(current_msg)
+                record_id = str(current_msg['metadata']['serialId']['recordId'])
+                field_validations = self._validate(current_msg)
+                results.append({
+                    'RecordID': record_id,
+                    'Validations': field_validations
+                })
 
         seq = Sequential()
         sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
@@ -162,27 +164,31 @@ class TestCase:
 
 # main function using old functionality
 def test():
-    config_file = "samples/bsmTx.ini"
+    config_file = "odevalidator/config.ini"
     # Parse test config and create test case
     validator = TestCase(config_file)
 
     print("[START] Beginning test routine referencing configuration file '%s'." % config_file)
 
-    #data_file = "samples/bsmTxGood.json"
-    #results = test_file(validator, data_file)
-    #print_results(results)
-
-    data_file = "samples/bsmTxBad.json"
+    data_file = "test/good.json"
     results = test_file(validator, data_file)
     print_results(results)
 
+    #data_file = "samples/bsmTxBad.json"
+    #results = test_file(validator, data_file)
+    #print_results(results)
+
 def print_results(results):
+    all_good = True
+    print("========")
     for res in results['Results']:
         for val in res['Validations']:
             if not val['Valid']:
-                #field = val['Field']
-                #details = val['Details']
+                all_good = False
                 print("Record ID %s: %s" % (res['RecordID'], val))
+    if all_good:
+        print("Results: SUCCESS")
+    print("========")
 
 
 # main function using old functionality
