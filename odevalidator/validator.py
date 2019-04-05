@@ -141,7 +141,8 @@ class TestCase:
                 field_validations = self._validate(current_msg)
                 results.append({
                     'RecordID': record_id,
-                    'Validations': field_validations
+                    'Validations': field_validations,
+                    'Record': current_msg
                 })
 
         seq = Sequential()
@@ -186,7 +187,7 @@ def print_results(results):
         for val in res['Validations']:
             if not val['Valid']:
                 all_good = False
-                print("Record ID %s: %s" % (res['RecordID'], val))
+                print({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
     if all_good:
         print("Results: SUCCESS")
     print("========")
