@@ -61,23 +61,23 @@ class Field:
             if len(result) > 0:
                 return result[0]
         elif field_value is None:
-            return ValidationResult(False, "Field '%s' missing" % self.path)
+            return ValidationResult(False, "Field missing")
         elif field_value == "":
-            return ValidationResult(False, "Field '%s' empty" % self.path)
+            return ValidationResult(False, "Field empty")
         elif hasattr(self, 'values') and str(field_value) not in self.values:
-            return ValidationResult(False, "Field '%s' value '%s' not in list of known values: [%s]" % (self.path, str(field_value), ', '.join(map(str, self.values))))
+            return ValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(field_value), ', '.join(map(str, self.values))))
 
         if hasattr(self, 'upper_limit') and Decimal(field_value) > self.upper_limit:
-            return ValidationResult(False, "Field '%s' value '%d' is greater than upper limit '%d'" % (self.path, Decimal(field_value), self.upper_limit))
+            return ValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(field_value), self.upper_limit))
         if hasattr(self, 'lower_limit') and Decimal(field_value) < self.lower_limit:
-            return ValidationResult(False, "Field '%s' value '%d' is less than lower limit '%d'" % (self.path, Decimal(field_value), self.lower_limit))
+            return ValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(field_value), self.lower_limit))
 
 
         if self.type == TYPE_TIMESTAMP:
             try:
                 dateutil.parser.parse(field_value)
             except Exception as e:
-                return ValidationResult(False, "Field '%s' value could not be parsed as a timestamp, error: %s" % (self.path, str(e)))
+                return ValidationResult(False, "Value could not be parsed as a timestamp, error: %s" % (str(e)))
         return ValidationResult(True, "")
 
     def check_value(self, data_field_value, data):
@@ -89,7 +89,7 @@ class Field:
                 sw_field_name = equals_value['startsWithField']
                 sw_field_value = _get_field_value(sw_field_name, data)
                 if sw_field_value and not data_field_value.startswith(sw_field_value):
-                    validations.append(ValidationResult(False, "Value of Field '%s' ('%s') does not start with %s" % (self.path, data_field_value, sw_field_value)))
+                    validations.append(ValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value)))
 
             if 'conditions' in equals_value:
                 conditions = equals_value['conditions']
@@ -101,7 +101,7 @@ class Field:
                         # condition is met, so now we can check the value
                         then_part = cond['thenPart']
                         if data_field_value not in then_part:
-                            validations.append(ValidationResult(False, "Value of Field '%s' ('%s') is not one of the expected values (%s)" % (self.path, data_field_value, then_part)))
+                            validations.append(ValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part)))
                         break # since the condition is met, we are done. We should not check other conditions
 
         return validations
