@@ -6,6 +6,6 @@ setup(
     author_email="fake@email.com",
     description="ODE Data Validation Library",
     packages=find_packages(),
-    package_data={'odevalidator': ['config.ini']},
+    package_data={'odevalidator': ['odevalidator/config.ini']},
     include_package_data=True,
 )
