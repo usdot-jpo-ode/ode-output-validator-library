@@ -1,2 +1,2 @@
 #!/bin/bash
-pip install --user --upgrade ./
+pip install --upgrade ./
