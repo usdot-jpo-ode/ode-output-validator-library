@@ -7,8 +7,8 @@ from pathlib import Path
 import queue
 from collections.abc import Iterable
 
-from odevalidator.result import ValidationResult, ValidatorException
-from odevalidator.sequential import Sequential
+from .result import ValidationResult, ValidatorException
+from .sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
@@ -82,7 +82,7 @@ class Field:
     def check_value(self, data_field_value, data):
         validations = []
         equals_value = json.loads(self.equals_value)
-        
+
         if isinstance(equals_value, Iterable):
             if 'startsWithField' in equals_value:
                 sw_field_name = equals_value['startsWithField']
@@ -107,16 +107,13 @@ class Field:
 
 
 class TestCase:
-    def __init__(self, filepath="odevalidator/config.ini"):
+    def __init__(self, filepath="config.ini"):
         assert Path(filepath).is_file(), "Configuration file '%s' could not be found" % filepath
         self.config = configparser.ConfigParser()
         self.config.read(filepath)
         self.field_list = []
         for key in self.config.sections():
-            if key == "_settings":
-                continue
-            else:
-                self.field_list.append(Field(self.config[key]))
+            self.field_list.append(Field(self.config[key]))
 
     def _validate(self, data):
         validations = []
@@ -134,7 +131,7 @@ class TestCase:
         msg_list = []
         while not msg_queue.empty():
             line = msg_queue.get()
-            if line and not str.startswith(str(line), '#'):
+            if line and not line.startswith('#'):
                 current_msg = json.loads(line)
                 msg_list.append(current_msg)
                 record_id = str(current_msg['metadata']['serialId']['recordId'])
