@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 import queue
 from collections.abc import Iterable
+import pkg_resources
 
 from .result import ValidationResult, ValidatorException
 from .sequential import Sequential
@@ -107,10 +108,15 @@ class Field:
 
 
 class TestCase:
-    def __init__(self, filepath="config.ini"):
-        assert Path(filepath).is_file(), "Configuration file '%s' could not be found" % filepath
+    def __init__(self, filepath=None):
         self.config = configparser.ConfigParser()
-        self.config.read(filepath)
+        if filepath is None:
+            default_config = pkg_resources.resource_string(__name__, "config.ini")
+            self.config.read_string(default_config)
+        else:
+            assert Path(filepath).is_file(), "Custom configuration file '%s' could not be found" % filepath
+            self.config.read(filepath)
+
         self.field_list = []
         for key in self.config.sections():
             self.field_list.append(Field(self.config[key]))
