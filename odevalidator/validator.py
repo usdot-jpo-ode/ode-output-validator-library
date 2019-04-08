@@ -7,6 +7,7 @@ from pathlib import Path
 import queue
 from collections.abc import Iterable
 import pkg_resources
+from io import BytesIO
 
 from .result import ValidationResult, ValidatorException
 from .sequential import Sequential
@@ -112,7 +113,7 @@ class TestCase:
         self.config = configparser.ConfigParser()
         if filepath is None:
             default_config = pkg_resources.resource_string(__name__, "config.ini")
-            self.config.read_string(default_config)
+            self.config.read_string(BytesIO(default_config))
         else:
             assert Path(filepath).is_file(), "Custom configuration file '%s' could not be found" % filepath
             self.config.read(filepath)
