@@ -45,23 +45,25 @@ Supported stateless checks:
 4. Field is one of several specific values
 5. Field value is in a certain range
 
+
+The library is designed to encapsulate functionality that is most useful for all users. 
+1. `odevalidator` requires only one configuration file. 
+2. Test cases declare conditional fields or fields that are only checked if some other condition is met.
+3. Data files with multiple types of messages will be processed based on the conditional statements in the config file.
+4. Test cases can have "optional fields". If fields are declared in the configuration file, they are considered as required 
+   fields *unless an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
+
 #### 2. Non-configurable, implicit, stateful checks
 
 The validation library accepts messages in a list format so that it may validate properties of the list as a whole. These checks include:
 
 1. Message serial numbers and record IDs increment by 1 between messages without gaps or duplication
 2. Timestamps from sequential messages are also chronological
-3. Number of records in a list from one specific log file is less than or equal to the bundleSize
+3. Number of records in a complete list of records from one specific log file is equal to the `bundleSize`. 
+If the tail end of a partial list of records from a log file are being analyzed, the number of records in that partial bundle must be less that the `bundleSize`.
 
 These checks require a whole list to be passed in and will vacuously pass when the list has only one message.
 
-### Testing Limitations
-
-The library is designed to encapsulate functionality that is most useful for all users. As a result some additional functionalities are not supported directly by the library and require wrapper code:
-
-1. A test case can only be initialized with one configuration file. Data files with multiple types of messages will require separate TestCases objects for each message type.
-2. Test cases cannot define optional fields. If fields are declared in the configuration file, they must appear in the message or else the validation is considered failed.
-3. Test cases cannot define conditional fields or fields that are only checked if some other state is condition is met.
 
 ## Installation
 
@@ -74,7 +76,7 @@ pip install .
 Once you have the package installed, import the TestCase class.
 
 ```
-from odevalidator import TestCase
+from odevalidator.validator import TestCase
 ```
 
 ## Functional Interface
@@ -84,6 +86,10 @@ from odevalidator import TestCase
 Creates a configured test case object that can be used for validation.
 
 **Request Syntax**
+```
+test_case = TestCase()
+```
+or
 
 ```
 test_case = TestCase(
@@ -100,6 +106,11 @@ test_case = TestCase(
 `Object`
 
 **Usage Example**
+```
+test_case = TestCase()
+```
+or
+
 ```
 test_case = TestCase("./config/bsmLogDuringEvent.ini")
 ```
@@ -137,7 +148,8 @@ The following are examples of a stateless and stateful responses:
           'Field': 'string',
           'Valid': True|False,
           'Details': 'string'
-        }]
+        }],
+	  'Record': `json string`
     }]
 }
 ```
@@ -149,9 +161,11 @@ The following are examples of a stateless and stateful responses:
       'RecordID': -1,
       'Validations': [
         {
+		  'Field': "SequentialCheck",
           'Valid': True|False,
           'Details': 'string'
-        }]
+        }],
+	  'Record': "NA"
     }]
 }
 ```
@@ -164,9 +178,10 @@ The following are examples of a stateless and stateful responses:
       - **RecordID** (_string_) Index of the message, taken from recordId metadata field. _For stateful contextual checks, the value of this field will be set to -1._
       - **Validations** (_list_) List of validation results for each analyzed field.
         - (_dict_)
-          - **Field** (_string_) [Optional] Path or name of the analyzed field. _For stateful contextual checks, the this field will be missing._
+          - **Field** (_string_) Path or name of the analyzed field. _For stateful contextual checks, the value of this field will be `SequentialCheck`._
           - **Valid** (_boolean_) Whether the field passed validation (True) or failed (False).
           - **Details** (_string_) Further information about the check, including error messages if the check failed.
+      - **Record** (_json string_) The full record in JSON format. _For stateful contextual checks, the value of this field will be `NA`._
 
 **Usage Example**
 ```
@@ -179,7 +194,7 @@ validation_results = test_case.validate(msg_queue)
 
 ## Configuration
 
-The configuration file is a standard .ini file where each field is configured by setting the properties from the list below.
+The configuration file is a standard `.ini` file where each field is configured by setting the properties from the list below.
 
 **Field configuration syntax:**
 
@@ -188,7 +203,7 @@ The configuration file is a standard .ini file where each field is configured by
 Path = json.path.to.field
 Type = decimal|enum|string|timestamp
 Values = ["list", "of", "possible", "values"]
-EqualsValue = expectedValueOfField
+EqualsValue = json
 UpperLimit = 123
 LowerLimit = -123
 ```
@@ -222,9 +237,60 @@ LowerLimit = -123
     - timestamp
       - Values of this type will be validated by testing for parsability
 - `EqualsValue` \[_optional_\]
-  - Summary: Sets the expected value of this field, will fail if the value does not match this
-  - Value: Expected value: 
-Here's an example with conditional requirements. 
+  - Summary: Sets the expected value of this field based on the given specifications in json format. 
+    Validation check for the field will fail if the value does not comply with at least one of the given conditions.
+  - Value: Expected value: A json string with the following schema:
+```
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Schema for EqualsValue field of the odevalidator config file.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "conditions": {
+      "description": "This object specifies an array of conditions to be evaluated and matched with the value of this field validation. The specification is in the form of a `if-then` statement. `ifPart` references another data field (`fieldName`) and a list of values (`fieldValues`). `thenPart` provides the valid values for this field validation if the `ifPart` condition is satisifed. If the `ifPart` condition is not satisied, the logic will check the next `condition` until one is satisfied or none are satisifed. If no condition is satisied, the field validation is considered optional. Therefore, if a field is required but conditional, all possible values should be provided as conditions. Search for conditions `short-circuit` as soon as a condition is met.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Conditions"
+      }
+    },
+    "startsWithField": {
+      "description": "The value of this property is a fully qualified path to another data field. The value of this field is expected to be `start` with the value of the referenced data field.",
+      "type": "string"
+    }
+  },
+  "Conditions": {
+    "ifPart": {
+      "description": "This object specifies a condition to be evaluated and matched with the value of the field validation. This specification references another data field (`fieldName`) and a list of paossible valid values (`fieldValues`) to be matched.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fieldName": {
+          "description": "This object specifies data field. This condition is met if the value of the field given by the `fieldName` equals one of the values given by `fieldValues`",
+          "type": "string"
+        },
+        "fieldValues": {
+          "description": "This element of the `ifPart`a list of values for `fieldName` that would satisfy this condition.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "thenPart": {
+      "description": "This element provides the valid values for this field validation given that one of conditions is met. If no condition is satisied, the field validation is considered optional. Therefore, if a field is required but conditional, all possible values should be provided as conditions.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
+```
+
+The following conditional field validation states that the value of `metadata.payloadType` must be equal `us.dot.its.jpo.ode.model.OdeBsmPayload` if 
+`metadata.recordType` field is equal `bsmLogDuringEvent` or `bsmTx`. 
 ```
 [payloadType]
 Path = metadata.payloadType
@@ -310,18 +376,13 @@ Below is the EqualsValue in a more readable JSON format. This specifies that
   ]
 }
 ```
-Here's another config example:
+
+The following field validation specifies that logFileName` must start with the same string as the value of `metadata.recordType`.
 ```
 [logFileName]
 Path = metadata.logFileName
 Type = string
 EqualsValue = {"startsWithField": "metadata.recordType"}
-```
-This example states that `logFileName` must start with the same string as the value of `metadata.recordType`
-```
-{
-  "startsWithField": "metadata.recordType"
-}
 ```
 
 - `Values` \[_optional_\]
