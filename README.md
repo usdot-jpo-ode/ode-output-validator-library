@@ -76,7 +76,7 @@ pip install .
 Once you have the package installed, import the TestCase class.
 
 ```
-from odevalidator.validator import TestCase
+from odevalidator import TestCase
 ```
 
 ## Functional Interface
@@ -99,7 +99,7 @@ test_case = TestCase(
 
 **Parameters**
 
-- **filepath** (_string_) \[_optional_\] Relative or absolute path to the configuration file (see more information in the configuration section below).
+- **filepath** (_string_) \[_optional_\] Relative or absolute path to the configuration file (see more information in the configuration section below). If not specified, the library will use the [default validation configuration](odevalidator/config.ini).
 
 **Return Type**
 
@@ -115,7 +115,7 @@ or
 test_case = TestCase("./config/bsmLogDuringEvent.ini")
 ```
 
-### `.validate(**kwargs)`
+### `.validate_queue(**kwargs)`
 
 Iterates a message queue and performs validations on each message, returning the results.
 
@@ -149,7 +149,7 @@ The following are examples of a stateless and stateful responses:
           'Valid': True|False,
           'Details': 'string'
         }],
-	  'Record': `json string`
+      'Record': 'string'
     }]
 }
 ```
@@ -178,10 +178,10 @@ The following are examples of a stateless and stateful responses:
       - **RecordID** (_string_) Index of the message, taken from recordId metadata field. _For stateful contextual checks, the value of this field will be set to -1._
       - **Validations** (_list_) List of validation results for each analyzed field.
         - (_dict_)
-          - **Field** (_string_) Path or name of the analyzed field. _For stateful contextual checks, the value of this field will be `SequentialCheck`._
+          - **Field** (_string_) JSON path of the analyzed field. _For stateful contextual checks, the value of this field will be `SequentialCheck`._
           - **Valid** (_boolean_) Whether the field passed validation (True) or failed (False).
           - **Details** (_string_) Further information about the check, including error messages if the check failed.
-      - **Record** (_json string_) The full record in JSON format. _For stateful contextual checks, the value of this field will be `NA`._
+      - **Record** (_string_) The full record in JSON string format. _For stateful contextual checks, the value of this field will be `NA`._
 
 **Usage Example**
 ```
@@ -189,7 +189,7 @@ msg_queue = queue.Queue()
 for msg in my_message_list:
   msg_queue.put(msg)
 
-validation_results = test_case.validate(msg_queue)
+validation_results = test_case.validate_queue(msg_queue)
 ```
 
 ## Configuration
