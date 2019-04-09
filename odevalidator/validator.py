@@ -169,16 +169,11 @@ class TestCase:
         return {'Results': results}
 
 # main function using old functionality
-def test():
+def test(data_file):
     #config_file = "odevalidator/config.ini"
     # Parse test config and create test case
     validator = TestCase()
 
-    data_file = "test/good.json"
-    results = test_file(validator, data_file)
-    print_results(results)
-
-    data_file = "test/bad.json"
     results = test_file(validator, data_file)
     print_results(results)
 
@@ -219,5 +214,3 @@ def test_file(validator, data_file):
 
     return results
 
-if __name__ == '__main__':
-    test()
