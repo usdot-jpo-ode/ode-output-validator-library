@@ -137,7 +137,7 @@ class TestCase:
         msg_list = []
         while not msg_queue.empty():
             line = msg_queue.get()
-            if line and not line.startswith('#'):
+            if line and not line.startswith(b'#'):
                 current_msg = json.loads(line)
                 msg_list.append(current_msg)
                 record_id = str(current_msg['metadata']['serialId']['recordId'])
