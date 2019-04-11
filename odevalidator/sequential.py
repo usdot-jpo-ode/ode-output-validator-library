@@ -26,8 +26,14 @@ class Sequential:
         firstRecord = sorted_bundle[0]
         old_record_id = int(firstRecord['metadata']['serialId']['recordId'])
         old_serial_number = int(firstRecord['metadata']['serialId']['serialNumber'])
-        old_record_generated_at = dateutil.parser.parse(firstRecord['metadata']['recordGeneratedAt'])
-        old_ode_received_at = dateutil.parser.parse(firstRecord['metadata']['odeReceivedAt'])
+        old_record_generated_at_string = firstRecord['metadata']['recordGeneratedAt']
+        if old_record_generated_at_string.endswith('[UTC]'):
+            old_record_generated_at_string = old_record_generated_at_string[:-5]
+        old_record_generated_at = dateutil.parser.parse(old_record_generated_at_string)
+        old_ode_received_at_string = firstRecord['metadata']['odeReceivedAt']
+        if old_ode_received_at_string.endswith('[UTC]'):
+            old_ode_received_at_string = old_ode_received_at_string[:-5]
+        old_ode_received_at = dateutil.parser.parse(old_ode_received_at_string)
 
         record_num = 1
         validation_results = []
@@ -35,8 +41,14 @@ class Sequential:
             record_num += 1
             new_record_id = int(record['metadata']['serialId']['recordId'])
             new_serial_number = int(record['metadata']['serialId']['serialNumber'])
-            new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt'])
-            new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
+            new_record_generated_at_string = record['metadata']['recordGeneratedAt']
+            if new_record_generated_at_string.endswith('[UTC]'):
+                new_record_generated_at_string = new_record_generated_at_string[:-5]
+            new_record_generated_at = dateutil.parser.parse(new_record_generated_at_string)
+            new_ode_received_at_string = record['metadata']['odeReceivedAt']
+            if new_ode_received_at_string.endswith('[UTC]'):
+                new_ode_received_at_string = new_ode_received_at_string[:-5]
+            new_ode_received_at = dateutil.parser.parse(new_ode_received_at_string)
 
             if new_record_id != old_record_id+1:
                 validation_results.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected recordId '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id)))

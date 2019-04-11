@@ -75,6 +75,8 @@ class Field:
 
         if self.type == TYPE_TIMESTAMP:
             try:
+                if field_value.endswith('[UTC]'):
+                    field_value = field_value[:-5]
                 dateutil.parser.parse(field_value)
             except Exception as e:
                 return ValidationResult(False, "Value could not be parsed as a timestamp, error: %s" % (str(e)))
@@ -213,4 +215,3 @@ def test_file(validator, data_file):
     results = validator.validate_queue(q)
 
     return results
-
