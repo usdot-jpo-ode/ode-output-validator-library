@@ -2,18 +2,52 @@
 
 Contains shared library functions for validating ODE message output schemas and constraints.
 
+## Table of Contents
+
+1.  [Summary](#summary)
+2.  [Quick Start Guide](#quick-start-guide)
+3.  [Validation Details and Limitations](#validation-details-and-limitations)
+4.  [Configuration](#configuration)
+5.  [Unit Testing](#unit-testing)
+
+<a name="summary"/>
+
 ## Summary
 
 Messages produced by the ODE have a specific structure, the purpose of this library is to check that the actual messages produced match that structure. This is a black box tool that takes a list of messages, processes them internally, and returns a results object containing validation details of each field of each message.
 
-The constraints on the messages can be considered in two categories as outlined in the **Testing Details and Limitations** section: stateless and stateful checks. Stateless checks are user-configured using the configuration file as detailed in the **Configuration** section, and stateful checks are performed automatically.
+The constraints on the messages can be considered in two categories as outlined in the **Validation Details and Limitations** section: stateless and stateful checks. Stateless checks are user-configured using the configuration file as detailed in the **Configuration** section, and stateful checks are performed automatically.
 
+<a name="quick-start-guide"/>
 
-## Testing Details and Limitations
+## Quick Start Guide
 
-### Testing Details
+This library comes ready to use right out of the box. To get started testing quickly:
 
-There are two general types of checks: stateless and stateful checks. Users may configure the stateless checks and may invoke the stateful checks by passing a list of messages.
+1. Clone this repository and run `install.sh`
+2. Run the library as a python module and pass your file (with records separated by newlines) using the `--data-file` argument:
+
+```bash
+python -m odevalidator --data-file tests/testfiles/good.json
+```
+
+If everything worked, you should see these messages:
+
+```bash
+Executing local tests...
+Testing 'tests/testfiles/good.json'.
+========
+Results: SUCCESS
+========
+```
+
+<a name="validation-details-and-limitations"/>
+
+## Validation Details and Limitations
+
+### Validation Details
+
+There are two general types of validation checks: stateless and stateful checks. Users may configure the stateless checks and may invoke the stateful checks by passing a list of messages.
 
 #### 1. Configurable, explicit, stateless checks
 
@@ -46,12 +80,12 @@ Supported stateless checks:
 5. Field value is in a certain range
 
 
-The library is designed to encapsulate functionality that is most useful for all users. 
-1. `odevalidator` requires only one configuration file. 
+The library is designed to encapsulate functionality that is most useful for all users.
+1. `odevalidator` requires only one configuration file.
 2. Test cases declare conditional fields or fields that are only checked if some other condition is met.
 3. Data files with multiple types of messages will be processed based on the conditional statements in the config file.
-4. Test cases can have "optional fields". If fields are declared in the configuration file, they are considered as required 
-   fields *unless an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
+4. Test cases can have "optional fields". If fields are declared in the configuration file, they are considered as required
+   fields *unless* an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
 
 #### 2. Non-configurable, implicit, stateful checks
 
@@ -59,19 +93,17 @@ The validation library accepts messages in a list format so that it may validate
 
 1. Message serial numbers and record IDs increment by 1 between messages without gaps or duplication
 2. Timestamps from sequential messages are also chronological
-3. Number of records in a complete list of records from one specific log file is equal to the `bundleSize`. 
+3. Number of records in a complete list of records from one specific log file is equal to the `bundleSize`.
 If the tail end of a partial list of records from a log file are being analyzed, the number of records in that partial bundle must be less that the `bundleSize`.
 
 These checks require a whole list to be passed in and will vacuously pass when the list has only one message.
 
+**Important note: Messages will NOT be sequentially validated if the library detects that they are either rxMsg type or they have been sanitized by the PPM.**
+
 
 ## Installation
 
-Pip may be used to install the library locally, or by using pip to manage and pull the library from Github directly.
-
-```
-pip install .
-```
+Install the library using the `install.sh` script.
 
 Once you have the package installed, import the TestCase class.
 
@@ -192,6 +224,8 @@ for msg in my_message_list:
 validation_results = test_case.validate_queue(msg_queue)
 ```
 
+<a name="configuration"/>
+
 ## Configuration
 
 The configuration file is a standard `.ini` file where each field is configured by setting the properties from the list below.
@@ -237,7 +271,7 @@ LowerLimit = -123
     - timestamp
       - Values of this type will be validated by testing for parsability
 - `EqualsValue` \[_optional_\]
-  - Summary: Sets the expected value of this field based on the given specifications in json format. 
+  - Summary: Sets the expected value of this field based on the given specifications in json format.
     Validation check for the field will fail if the value does not comply with at least one of the given conditions.
   - Value: Expected value: A json string with the following schema:
 ```
@@ -289,8 +323,8 @@ LowerLimit = -123
 }
 ```
 
-The following conditional field validation states that the value of `metadata.payloadType` must be equal `us.dot.its.jpo.ode.model.OdeBsmPayload` if 
-`metadata.recordType` field is equal `bsmLogDuringEvent` or `bsmTx`. 
+The following conditional field validation states that the value of `metadata.payloadType` must be equal `us.dot.its.jpo.ode.model.OdeBsmPayload` if
+`metadata.recordType` field is equal `bsmLogDuringEvent` or `bsmTx`.
 ```
 [payloadType]
 Path = metadata.payloadType
@@ -302,13 +336,13 @@ EqualsValue = {"conditions":[{"ifPart":{"fieldName":"metadata.recordType","field
 Below is the EqualsValue in a more readable JSON format. This specifies that
 `payloadType` must match the value given in `thenPart` depending on the value of
 `metadata.recordType`. So
-- if `metadata.recordType` is either `bsmLogDuringEvent` or `bsmTx`, 
+- if `metadata.recordType` is either `bsmLogDuringEvent` or `bsmTx`,
 `payloadType` must be `us.dot.its.jpo.ode.model.OdeBsmPayload`.
-- if `metadata.recordType` is `dnMsg`, 
+- if `metadata.recordType` is `dnMsg`,
 `payloadType` must be `us.dot.its.jpo.ode.model.OdeTimPayload`.
-- if `metadata.recordType` is `driverAlert`, 
+- if `metadata.recordType` is `driverAlert`,
 `payloadType` must be `us.dot.its.jpo.ode.model.OdeDriverAlertPayload`.
-- if `metadata.receivedMessageDetails.rxSource` is `RV`, 
+- if `metadata.receivedMessageDetails.rxSource` is `RV`,
 `payloadType` must be `us.dot.its.jpo.ode.model.OdeTimPayload`.
 
 ```
@@ -377,7 +411,8 @@ Below is the EqualsValue in a more readable JSON format. This specifies that
 }
 ```
 
-The following field validation specifies that logFileName` must start with the same string as the value of `metadata.recordType`.
+The following field validation specifies that `logFileName` must start with the same string as the value of `metadata.recordType`.
+
 ```
 [logFileName]
 Path = metadata.logFileName
@@ -394,7 +429,54 @@ EqualsValue = {"startsWithField": "metadata.recordType"}
 - `UpperLimit` \[_optional_\]
   - Summary: Used with decimal types to specify the highest acceptable value for this field
   - Value: decimal number: `UpperLimit = 150.43`
+- `EarliestTime` \[_optional_\]
+  - Summary: Used with timestamp types to specify the earliest acceptable timestamp for this field
+  - Value: ISO timestamp: `EarliestTime = 2018-12-03T00:00:00.000Z`
+  - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
+- `LatestTime` \[_optional_\]
+  - Summary: Used with timestamp types to specify the latest acceptable timestamp for this field
+  - Special value: Use `NOW` to validate that the timestamp is not in the future: `LatestTime = NOW`
+  - Value: ISO timestamp: `LatestTime = 2018-12-03T00:00:00.000Z`
+  - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
 
 **[Sample Files](samples)**
 - [Sample Configuration File](samples/bsmTx.ini)
 - [Sample Data File](bsmTx.json)
+
+<a name="unit-testing"/>
+
+## Unit Testing
+
+This library includes unit tests built using the [`unittest`](https://docs.python.org/3/library/unittest.html) Python framework. They can be run using the _setup.py_ module.
+
+<details><summary>1. Activate virtualenv</summary>
+<p>
+
+```bash
+virtualenv -p python3 virtualenv
+source virtualenv/bin/activate
+```
+
+</p>
+</details>
+
+2. Install the library
+
+```bash
+./install.sh
+```
+
+3. Run the tests
+
+```bash
+./unittest.sh
+```
+
+
+<details><summary>4. Deactivate virtualenv</summary>
+<p>
+```bash
+deactivate
+```
+</p>
+</details>

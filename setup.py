@@ -8,4 +8,5 @@ setup(
     packages=find_packages(),
     package_data={'odevalidator': ['config.ini']},
     include_package_data=True,
+    test_suite="tests",
 )
