@@ -16,4 +16,4 @@ addons:
 script:
   - coverage run --source=odevalidator setup.py test
   - coverage xml -i
-  - sonar-scanner
+  - sonar-scanner -Dsonar.projectKey=ode-output-validator-library -Dsonar.organization=usdot-jpo-ode -Dsonar.sources=odevalidator
