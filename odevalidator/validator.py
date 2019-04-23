@@ -2,13 +2,12 @@ import configparser
 import dateutil.parser
 import json
 import logging
-from decimal import Decimal
-from pathlib import Path
+import pkg_resources
 import queue
 from collections.abc import Iterable
 from datetime import datetime, timezone
-import pkg_resources
-
+from decimal import Decimal
+from pathlib import Path
 from .result import ValidationResult, ValidatorException
 from .sequential import Sequential
 
