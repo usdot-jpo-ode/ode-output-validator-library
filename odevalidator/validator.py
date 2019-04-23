@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 import queue
 from collections.abc import Iterable
+from datetime import datetime, timezone
 import pkg_resources
 
 from .result import ValidationResult, ValidatorException
@@ -52,6 +53,21 @@ class Field:
         equals_value = field.get('EqualsValue')
         if equals_value is not None:
             self.equals_value = str(equals_value)
+        earliest_time = field.get('EarliestTime')
+        if earliest_time is not None:
+            try:
+                self.earliest_time = dateutil.parser.parse(earliest_time)
+            except Exception as e:
+                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s, error: %s" % (field, str(e)))
+        latest_time = field.get('LatestTime')
+        if latest_time is not None:
+            if latest_time == 'NOW':
+                self.latest_time = datetime.now(timezone.utc)
+            else:
+                try:
+                    self.latest_time = dateutil.parser.parse(latest_time)
+                except Exception as e:
+                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s, error: %s" % (field, str(e)))
 
     def validate(self, data):
         field_value = _get_field_value(self.path, data)
@@ -72,12 +88,15 @@ class Field:
         if hasattr(self, 'lower_limit') and Decimal(field_value) < self.lower_limit:
             return ValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(field_value), self.lower_limit))
 
-
         if self.type == TYPE_TIMESTAMP:
             try:
-                dateutil.parser.parse(field_value)
+                time_value = dateutil.parser.parse(field_value)
+                if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
+                    return ValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time))
+                if hasattr(self, 'latest_time') and time_value > self.latest_time:
+                    return ValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time))
             except Exception as e:
-                return ValidationResult(False, "Value could not be parsed as a timestamp, error: %s" % (str(e)))
+                return ValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)))
         return ValidationResult(True, "")
 
     def check_value(self, data_field_value, data):
@@ -135,18 +154,26 @@ class TestCase:
     def validate_queue(self, msg_queue):
         results = []
         msg_list = []
+        skip_sequential_checks = False
         while not msg_queue.empty():
             line = msg_queue.get()
             if line and not line.startswith('#'):
                 current_msg = json.loads(line)
                 msg_list.append(current_msg)
                 record_id = str(current_msg['metadata']['serialId']['recordId'])
+                sanitized = current_msg['metadata']['sanitized']
+                record_type = current_msg['metadata']['recordType']
+                if sanitized or record_type == 'rxMsg':
+                    skip_sequential_checks = True
                 field_validations = self._validate(current_msg)
                 results.append({
                     'RecordID': record_id,
                     'Validations': field_validations,
                     'Record': current_msg
                 })
+
+        if skip_sequential_checks:
+            return {'Results': results}
 
         seq = Sequential()
         sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
@@ -213,4 +240,3 @@ def test_file(validator, data_file):
     results = validator.validate_queue(q)
 
     return results
-
