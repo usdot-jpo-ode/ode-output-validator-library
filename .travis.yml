@@ -1,0 +1,17 @@
+language: python
+dist: xenial # Travis does not support python 3.7 https://github.com/travis-ci/travis-ci/issues/9815
+sudo: yes
+python:
+  - "3.7"
+install:
+  - ./install.sh
+  - pip install coverage
+addons:
+  sonarcloud:
+    organization: "usdot-jpo-ode"
+    token:
+      secure: $SONAR_TOKEN
+script:
+  - coverage run --source=odevalidator setup.py test
+  - coverage xml -i
+  - sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonary.sources=. -Dsonar.inclusions=odevalidator/*.py -Dsonar.projectKey=ode-output-validator-library -Dsonar.organization=usdot-jpo-ode -Dsonar.sonar.python.coverage.reportPaths=coverage.xml -Dsonar.python.xunit.reportPath=coverage.xml -Dsonar.login=$SONAR_TOKEN -Dsonar.tests=tests
