@@ -5,3 +5,7 @@
 /*.sln
 *.pyc
 /.vscode
+.coverage
+.eggs/
+.scannerwork/
+coverage.xml
