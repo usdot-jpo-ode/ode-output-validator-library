@@ -473,7 +473,7 @@ source virtualenv/bin/activate
 3. Run the tests
 
 ```bash
-./test.sh
+./unittest.sh
 ```
 
 
