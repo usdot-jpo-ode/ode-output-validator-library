@@ -51,6 +51,5 @@ class ValidatorUnitTest(unittest.TestCase):
                     # print("Field: %s, Details: %s" % (val['Field'], val['Details']))
                     all_good = False
                     jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        # self.assertFalse(all_good)
-        self.assertTrue(all_good)
+        self.assertFalse(all_good)
         return False
