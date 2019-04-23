@@ -85,7 +85,7 @@ The library is designed to encapsulate functionality that is most useful for all
 2. Test cases declare conditional fields or fields that are only checked if some other condition is met.
 3. Data files with multiple types of messages will be processed based on the conditional statements in the config file.
 4. Test cases can have "optional fields". If fields are declared in the configuration file, they are considered as required
-   fields *unless an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
+   fields *unless* an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
 
 #### 2. Non-configurable, implicit, stateful checks
 
@@ -97,6 +97,8 @@ The validation library accepts messages in a list format so that it may validate
 If the tail end of a partial list of records from a log file are being analyzed, the number of records in that partial bundle must be less that the `bundleSize`.
 
 These checks require a whole list to be passed in and will vacuously pass when the list has only one message.
+
+**Important note: Messages will NOT be sequentially validated if the library detects that they are either rxMsg type or they have been sanitized by the PPM.**
 
 
 ## Installation
