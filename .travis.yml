@@ -6,7 +6,14 @@ python:
 install:
   - ./install.sh
   - pip install coverage
+addons:
+  sonarcloud:
+    organization: "usdot-jpo-ode"
+    token:
+      secure: $SONAR_TOKEN
+    branches:
+      - .*
 script:
-  - coverage run setup.py test --source=odevalidator
+  - coverage run --source=odevalidator setup.py test
   - coverage xml -i
-  - sonar-scanner -Dsonar.projectKey=ode-output-validator-library -Dsonar.organization=usdot-jpo-ode -Dsonar.sources=. -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_LOGIN -Dsonar.sonar.python.coverage.reportPaths=coverage.xml
+  - sonar-scanner
