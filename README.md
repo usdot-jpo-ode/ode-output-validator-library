@@ -103,11 +103,7 @@ These checks require a whole list to be passed in and will vacuously pass when t
 
 ## Installation
 
-Pip may be used to install the library locally, or by using pip to manage and pull the library from Github directly.
-
-```
-pip install .
-```
+Install the library using the `install.sh` script.
 
 Once you have the package installed, import the TestCase class.
 
