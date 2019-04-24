@@ -132,7 +132,8 @@ class TestCase:
             default_config = pkg_resources.resource_string(__name__, "config.ini")
             self.config.read_string(str(default_config, 'utf-8'))
         else:
-            assert Path(filepath).is_file(), "Custom configuration file '%s' could not be found" % filepath
+            if not Path(filepath).is_file():
+                raise ValidatorException("Custom configuration file '%s' could not be found" % filepath)
             self.config.read(filepath)
 
         self.field_list = []
