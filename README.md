@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/usdot-jpo-ode/ode-output-validator-library.svg?branch=master)](https://travis-ci.org/usdot-jpo-ode/ode-output-validator-library)[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ode-output-validator-library&metric=alert_status)](https://sonarcloud.io/dashboard?id=ode-output-validator-library)
 # ode-output-validator-library
 
 Contains shared library functions for validating ODE message output schemas and constraints.
