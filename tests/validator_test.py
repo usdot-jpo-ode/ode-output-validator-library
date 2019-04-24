@@ -28,6 +28,31 @@ class ValidatorUnitTest(unittest.TestCase):
         self.assertTrue(all_good)
         return
 
+    def test_good_bsmTx_file_passes_sequential_checks(self):
+        validator = TestCase()
+
+        data_file = 'tests/testfiles/good_bsmTx.json'
+        with open(data_file) as f:
+            content = f.readlines()
+        # remove whitespace characters like `\n` at the end of each line
+        content = [x.strip() for x in content]
+        #msgs = [json.loads(line) for line in content]
+        q = queue.Queue()
+        for msg in content:
+            q.put(msg)
+        results = validator.validate_queue(q)
+
+        all_good = True
+        # print("========")
+        jsonprint = []
+        for res in results['Results']:
+            for val in res['Validations']:
+                if not val['Valid']:
+                    all_good = False
+                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
+        self.assertTrue(all_good)
+        return
+
     def test_bad_file_does_bad_things(self):
         validator = TestCase()
 
