@@ -9,3 +9,5 @@
 .eggs/
 .scannerwork/
 coverage.xml
+odevalidator.egg-info/
+virtualenv/
