@@ -132,7 +132,8 @@ class TestCase:
             default_config = pkg_resources.resource_string(__name__, "config.ini")
             self.config.read_string(str(default_config, 'utf-8'))
         else:
-            assert Path(filepath).is_file(), "Custom configuration file '%s' could not be found" % filepath
+            if not Path(filepath).is_file():
+                raise ValidatorException("Custom configuration file '%s' could not be found" % filepath)
             self.config.read(filepath)
 
         self.field_list = []
@@ -193,49 +194,3 @@ class TestCase:
                 })
 
         return {'Results': results}
-
-# main function using old functionality
-def test(data_file):
-    #config_file = "odevalidator/config.ini"
-    # Parse test config and create test case
-    validator = TestCase()
-
-    results = test_file(validator, data_file)
-    print_results(results)
-
-def print_results(results):
-    all_good = True
-    print("========")
-    jsonprint = []
-    for res in results['Results']:
-        for val in res['Validations']:
-            if not val['Valid']:
-                all_good = False
-                jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-    if all_good:
-        print("Results: SUCCESS")
-    else:
-        print(jsonprint)
-        print("TOTAL FAILURES: %d" % len(jsonprint))
-
-    print("========")
-
-
-# main function using old functionality
-def test_file(validator, data_file):
-    print("Testing '%s'." % data_file)
-
-    with open(data_file) as f:
-        content = f.readlines()
-
-    # remove whitespace characters like `\n` at the end of each line
-    content = [x.strip() for x in content]
-    #msgs = [json.loads(line) for line in content]
-
-    q = queue.Queue()
-    for msg in content:
-        q.put(msg)
-
-    results = validator.validate_queue(q)
-
-    return results
