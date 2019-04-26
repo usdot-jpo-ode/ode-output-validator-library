@@ -119,6 +119,7 @@ from odevalidator import TestCase
 Creates a configured test case object that can be used for validation.
 
 **Request Syntax**
+
 ```
 test_case = TestCase()
 ```
