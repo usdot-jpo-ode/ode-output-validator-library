@@ -40,17 +40,12 @@ class FieldUnitTest(unittest.TestCase):
         except ValidatorException as e:
             self.assertEqual("Unable to parse configuration file timestamp LatestTime for field {'Path': 'a.b.c', 'Type': 'timestamp', 'LatestTime': 'invalidtimestamp'}, error: ('Unknown string format:', 'invalidtimestamp')", str(e))
 
+    def test_constructor_succeeds_valid_latesttime(self):
+        input_field_object = {"Path":"a.b.c", "Type":"timestamp", "LatestTime":"2019-03-14T14:54:21.596Z"}
+        actual_field = Field(input_field_object)
+        self.assertEqual("2019-03-14 14:54:21.596000+00:00", str(actual_field.latest_time))
 
-    # def test_get_field_value_returns_field_value_integer(self):
-    #     path_string = "alpha.beta.gamma"
-    #     data_object = {
-    #         "alpha":{
-    #             "beta":{
-    #                 "gamma":5
-    #             }
-    #         }
-    #     }
-    #
-    #     expected_value = 5
-    #     actual_value = odevalidator._
-    #     pass
+    def test_constructor_succeeds_latesttime_now_keyword(self):
+        input_field_object = {"Path":"a.b.c", "Type":"timestamp", "LatestTime":"NOW"}
+        actual_field = Field(input_field_object)
+        self.assertTrue(actual_field.latest_time != None)
