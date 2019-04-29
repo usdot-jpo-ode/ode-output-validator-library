@@ -104,7 +104,7 @@ class FieldUnitTest(unittest.TestCase):
         self.assertFalse(validation_result.valid)
         self.assertEqual("Value '49' is less than lower limit '50'", validation_result.error)
 
-    def test_validate_returns_succeeds_value_equals_lower_limit(self):
+    def test_validate_returns_success_value_equals_lower_limit(self):
         test_field_object = {"Path":"a.b", "Type":"decimal", "LowerLimit":50}
         test_field = Field(test_field_object)
         test_data = {"a":{"b":50}}
@@ -123,3 +123,41 @@ class FieldUnitTest(unittest.TestCase):
         test_field = Field(test_field_object)
         test_data = {"a":{"c":50}}
         self.assertIsNone(test_field._get_field_value("a.b", test_data))
+
+    def test_validate_returns_error_timestamp_before_earliest_time(self):
+        test_field_object = {"Path":"a.b", "Type":"timestamp", "EarliestTime":"2019-03-14T14:54:21.000Z"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"2019-03-14T14:54:20.000Z"}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Timestamp value '2019-03-14 14:54:20+00:00' occurs before earliest limit '2019-03-14 14:54:21+00:00'", validation_result.error)
+
+    def test_validate_returns_error_timestamp_after_latest_time(self):
+        test_field_object = {"Path":"a.b", "Type":"timestamp", "LatestTime":"2019-03-14T14:54:20.000Z"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"2019-03-14T14:54:21.000Z"}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Timestamp value '2019-03-14 14:54:21+00:00' occurs after latest limit '2019-03-14 14:54:20+00:00'", validation_result.error)
+
+    def test_validate_returns_error_unparsable_timestamp(self):
+        test_field_object = {"Path":"a.b", "Type":"timestamp", "LatestTime":"2019-03-14T14:54:20.000Z"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"invalidTimeStamp"}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Failed to perform timestamp validation, error: ('Unknown string format:', 'invalidTimeStamp')", validation_result.error)
+
+    def test_validate_returns_success_timestamp_before_latest_time(self):
+        test_field_object = {"Path":"a.b", "Type":"timestamp", "LatestTime":"2019-03-14T14:54:21.000Z"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"2019-03-14T14:54:20.000Z"}}
+        validation_result = test_field.validate(test_data)
+        self.assertTrue(validation_result.valid)
+
+    def test_validate_returns_success_timestamp_after_earliest_time(self):
+        test_field_object = {"Path":"a.b", "Type":"timestamp", "EarliestTime":"2019-03-14T14:54:20.000Z"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"2019-03-14T14:54:21.000Z"}}
+        validation_result = test_field.validate(test_data)
+        self.assertTrue(validation_result.valid)
