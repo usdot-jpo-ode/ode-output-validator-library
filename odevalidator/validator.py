@@ -112,15 +112,11 @@ class Field:
         return validations
 
     def _get_field_value(self, path_str, data):
-        try:
-            path_keys = path_str.split(".")
-            value = data
-            for key in path_keys:
-                value = value.get(key)
-            return value
-        except AttributeError as e:
-            raise ValidatorException("Could not find field with path '%s' in message: '%s'" % (path_str, data))
-
+        path_keys = path_str.split(".")
+        value = data
+        for key in path_keys:
+            value = value.get(key)
+        return value
 
 class TestCase:
     def __init__(self, filepath=None):

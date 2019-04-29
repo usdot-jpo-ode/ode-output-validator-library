@@ -49,3 +49,77 @@ class FieldUnitTest(unittest.TestCase):
         input_field_object = {"Path":"a.b.c", "Type":"timestamp", "LatestTime":"NOW"}
         actual_field = Field(input_field_object)
         self.assertTrue(actual_field.latest_time != None)
+
+    def test_validate_returns_error_field_missing(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Field missing", validation_result.error)
+
+    def test_validate_returns_error_field_empty(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":""}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Field empty", validation_result.error)
+
+    def test_validate_returns_error_enum_value_not_in_set(self):
+        test_field_object = {"Path":"a.b", "Type":"enum", "Values":"[\"alpha\", \"beta\", \"gamma\"]"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"delta"}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Value 'delta' not in list of known values: [alpha, beta, gamma]", validation_result.error)
+
+    def test_validate_returns_succeeds_enum_value_in_set(self):
+        test_field_object = {"Path":"a.b", "Type":"enum", "Values":"[\"alpha\", \"beta\", \"gamma\"]"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":"alpha"}}
+        validation_result = test_field.validate(test_data)
+        self.assertTrue(validation_result.valid)
+
+    def test_validate_returns_error_decimal_value_above_upper_limit(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal", "UpperLimit":100}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":101}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Value '101' is greater than upper limit '100'", validation_result.error)
+
+    def test_validate_returns_succeeds_value_equals_upper_limit(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal", "UpperLimit":100}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":100}}
+        validation_result = test_field.validate(test_data)
+        self.assertTrue(validation_result.valid)
+
+    def test_validate_returns_error_decimal_value_below_lower_limit(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal", "LowerLimit":50}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":49}}
+        validation_result = test_field.validate(test_data)
+        self.assertFalse(validation_result.valid)
+        self.assertEqual("Value '49' is less than lower limit '50'", validation_result.error)
+
+    def test_validate_returns_succeeds_value_equals_lower_limit(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal", "LowerLimit":50}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":50}}
+        validation_result = test_field.validate(test_data)
+        self.assertTrue(validation_result.valid)
+
+    def test_get_field_value_succeeds(self):
+        test_field_object = {"Path":"a.b", "Type":"decimal"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"b":50}}
+        field_value = test_field._get_field_value("a.b", test_data)
+        self.assertEqual(50, field_value)
+
+    def test_get_field_value_returns_none_invalid_path(self):
+        test_field_object = {"Path":"a.b.c", "Type":"decimal"}
+        test_field = Field(test_field_object)
+        test_data = {"a":{"c":50}}
+        self.assertIsNone(test_field._get_field_value("a.b", test_data))
