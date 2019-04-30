@@ -16,16 +16,6 @@ TYPE_ENUM = 'enum'
 TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
 
-def _get_field_value(path_str, data):
-    try:
-        path_keys = path_str.split(".")
-        value = data
-        for key in path_keys:
-            value = value.get(key)
-        return value
-    except AttributeError as e:
-        raise ValidatorException("Could not find field with path '%s' in message: '%s'" % (path_str, data))
-
 class Field:
     def __init__(self, field):
         # extract required settings
@@ -46,9 +36,6 @@ class Field:
         values = field.get('Values')
         if values is not None:
             self.values = json.loads(values)
-        increment = field.get('Increment')
-        if increment is not None:
-            self.increment = int(increment)
         equals_value = field.get('EqualsValue')
         if equals_value is not None:
             self.equals_value = str(equals_value)
@@ -69,7 +56,7 @@ class Field:
                     raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s, error: %s" % (field, str(e)))
 
     def validate(self, data):
-        field_value = _get_field_value(self.path, data)
+        field_value = self._get_field_value(self.path, data)
 
         if hasattr(self, 'equals_value'):
             result = self.check_value(field_value, data)
@@ -105,7 +92,7 @@ class Field:
         if isinstance(equals_value, Iterable):
             if 'startsWithField' in equals_value:
                 sw_field_name = equals_value['startsWithField']
-                sw_field_value = _get_field_value(sw_field_name, data)
+                sw_field_value = self._get_field_value(sw_field_name, data)
                 if sw_field_value and not data_field_value.startswith(sw_field_value):
                     validations.append(ValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value)))
 
@@ -113,7 +100,7 @@ class Field:
                 conditions = equals_value['conditions']
                 for cond in conditions:
                     if_part = cond['ifPart']
-                    refrenced_field_value = _get_field_value(if_part['fieldName'], data)
+                    refrenced_field_value = self._get_field_value(if_part['fieldName'], data)
                     expected_field_values = if_part['fieldValues']
                     if refrenced_field_value in expected_field_values:
                         # condition is met, so now we can check the value
@@ -124,6 +111,12 @@ class Field:
 
         return validations
 
+    def _get_field_value(self, path_str, data):
+        path_keys = path_str.split(".")
+        value = data
+        for key in path_keys:
+            value = value.get(key)
+        return value
 
 class TestCase:
     def __init__(self, filepath=None):
