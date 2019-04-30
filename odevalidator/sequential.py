@@ -23,11 +23,11 @@ class Sequential:
 
     ### Iterate messages and check that sequential items are sequential
     def validate_bundle(self, sorted_bundle):
-        firstRecord = sorted_bundle[0]
-        old_record_id = int(firstRecord['metadata']['serialId']['recordId'])
-        old_serial_number = int(firstRecord['metadata']['serialId']['serialNumber'])
-        old_record_generated_at = dateutil.parser.parse(firstRecord['metadata']['recordGeneratedAt'])
-        old_ode_received_at = dateutil.parser.parse(firstRecord['metadata']['odeReceivedAt'])
+        first_record = sorted_bundle[0]
+        old_record_id = int(first_record['metadata']['serialId']['recordId'])
+        old_serial_number = int(first_record['metadata']['serialId']['serialNumber'])
+        old_record_generated_at = dateutil.parser.parse(first_record['metadata']['recordGeneratedAt'])
+        old_ode_received_at = dateutil.parser.parse(first_record['metadata']['odeReceivedAt'])
 
         record_num = 1
         validation_results = []
@@ -86,12 +86,12 @@ class Sequential:
 
     ### Iterate messages and check that sequential items are sequential
     def collect_bundles(self, sorted_record_list):
-        firstRecord = sorted_record_list[0]
-        old_log_file_name = firstRecord['metadata']['logFileName']
+        first_record = sorted_record_list[0]
+        old_log_file_name = first_record['metadata']['logFileName']
 
         bundles = []
         bundle = []
-        bundle.append(firstRecord)
+        bundle.append(first_record)
         for record in sorted_record_list[1:]:
             new_log_file_name = record['metadata']['logFileName']
 
