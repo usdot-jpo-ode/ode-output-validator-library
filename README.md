@@ -477,8 +477,10 @@ source virtualenv/bin/activate
 
 <details><summary>4. Deactivate virtualenv</summary>
 <p>
+
 ```bash
 deactivate
 ```
+
 </p>
 </details>
