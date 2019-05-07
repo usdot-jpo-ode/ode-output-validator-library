@@ -14,18 +14,19 @@ class ValidatorUnitTest(unittest.TestCase):
         #msgs = [json.loads(line) for line in content]
         q = queue.Queue()
         for msg in content:
-            q.put(msg)
+            if msg and not msg.startswith('#'):
+                q.put(msg)
+
         results = validator.validate_queue(q)
 
-        all_good = True
         # print("========")
-        jsonprint = []
+        record_num = 0
         for res in results['Results']:
+            record_num += 1
             for val in res['Validations']:
                 if not val['Valid']:
-                    all_good = False
-                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        self.assertTrue(all_good)
+                    print("Record #: %d, SerialId: %s, Field: %s, Details: %s, \n=====\n%s" % (record_num, res['SerialId'], val['Field'], val['Details'], res['Record']))
+                self.assertTrue(val['Valid'], val)
         return
 
     def test_good_bsmTx_file_passes_sequential_checks(self):
@@ -39,18 +40,15 @@ class ValidatorUnitTest(unittest.TestCase):
         #msgs = [json.loads(line) for line in content]
         q = queue.Queue()
         for msg in content:
-            q.put(msg)
+            if msg and not msg.startswith('#'):
+                q.put(msg)
+
         results = validator.validate_queue(q)
 
-        all_good = True
         # print("========")
-        jsonprint = []
         for res in results['Results']:
             for val in res['Validations']:
-                if not val['Valid']:
-                    all_good = False
-                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        self.assertTrue(all_good)
+                self.assertTrue(val['Valid'])
         return
 
     def test_bad_file_does_bad_things(self):
@@ -64,17 +62,20 @@ class ValidatorUnitTest(unittest.TestCase):
         #msgs = [json.loads(line) for line in content]
         q = queue.Queue()
         for msg in content:
-            q.put(msg)
+            if msg and not msg.startswith('#'):
+                q.put(msg)
+
         results = validator.validate_queue(q)
 
-        all_good = True
+        fail_count = 0
+        expected_fail_count = 29
+        record_num = 0
         # print("========")
-        jsonprint = []
         for res in results['Results']:
+            record_num += 1
             for val in res['Validations']:
                 if not val['Valid']:
-                    # print("Field: %s, Details: %s" % (val['Field'], val['Details']))
-                    all_good = False
-                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        self.assertFalse(all_good)
-        return False
+                    print("Record #: %d, SerialId: %s, Field: %s, Details: %s, \n=====\n%s" % (record_num, res['SerialId'], val['Field'], val['Details'], res['Record']))
+                    fail_count += 1
+        self.assertEquals(expected_fail_count, fail_count, "Expected %s faluires, got %s failures." % (expected_fail_count, fail_count))
+        return True

@@ -38,7 +38,7 @@ class Sequential:
             new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt'])
             new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
 
-            if new_record_id != old_record_id+1:
+            if record['metadata']['serialId']['bundleSize'] > 1 and new_record_id != old_record_id+1:
                 validation_results.append(ValidationResult(False, "Detected incorrectly incremented recordId. Record Number: '%d' Expected recordId '%d' but got '%d'" % (record_num, old_record_id+1, new_record_id)))
             if new_serial_number != old_serial_number+1:
                 validation_results.append(ValidationResult(False, "Detected incorrectly incremented serialNumber. Record Number: '%d' Expected serialNumber '%d' but got '%d'" % (record_num, old_serial_number+1, new_serial_number)))
@@ -69,7 +69,7 @@ class Sequential:
                 # full list
                 for record in sorted_bundle:
                     bundle_size = int(record['metadata']['serialId']['bundleSize'])
-                    if len(sorted_bundle) != bundle_size:
+                    if 'logFileName' in record['metadata'] and len(sorted_bundle) != bundle_size:
                         validation_results.append(ValidationResult(False, "bundleSize doesn't match number of records. recordId: '%d' record length: '%d' != bundlSize: '%d'" % (record['metadata']['serialId']['recordId'], len(sorted_bundle), bundle_size)))
 
                 bundle_size = int(sorted_bundle[0]['metadata']['serialId']['bundleSize'])
@@ -87,13 +87,13 @@ class Sequential:
     ### Iterate messages and check that sequential items are sequential
     def collect_bundles(self, sorted_record_list):
         first_record = sorted_record_list[0]
-        old_log_file_name = first_record['metadata']['logFileName']
+        old_log_file_name = first_record['metadata']['logFileName'] if 'logFileName' in first_record['metadata'] else "NA"
 
         bundles = []
         bundle = []
         bundle.append(first_record)
         for record in sorted_record_list[1:]:
-            new_log_file_name = record['metadata']['logFileName']
+            new_log_file_name = record['metadata']['logFileName'] if 'logFileName' in record['metadata'] else "NA"
 
             if old_log_file_name == new_log_file_name:
                 bundle.append(record)
