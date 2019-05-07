@@ -21,12 +21,12 @@ class ValidatorUnitTest(unittest.TestCase):
 
         # print("========")
         record_num = 0
-        for res in results['Results']:
+        for res in results:
             record_num += 1
-            for val in res['Validations']:
-                if not val['Valid']:
-                    print("Record #: %d, SerialId: %s, Field: %s, Details: %s, \n=====\n%s" % (record_num, res['SerialId'], val['Field'], val['Details'], res['Record']))
-                self.assertTrue(val['Valid'], val)
+            for val in res.field_validations:
+                if not val.valid:
+                    print("Record #: %d, SerialId: %s, Field: %s, Details: %s, \n=====\n%s" % (record_num, res.serial_id, val.field, val.details, res.record))
+                self.assertTrue(val.valid, val)
         return
 
     def test_good_bsmTx_file_passes_sequential_checks(self):
@@ -46,9 +46,9 @@ class ValidatorUnitTest(unittest.TestCase):
         results = validator.validate_queue(q)
 
         # print("========")
-        for res in results['Results']:
-            for val in res['Validations']:
-                self.assertTrue(val['Valid'])
+        for res in results:
+            for val in res.field_validations:
+                self.assertTrue(val.valid)
         return
 
     def test_bad_file_does_bad_things(self):
@@ -71,11 +71,11 @@ class ValidatorUnitTest(unittest.TestCase):
         expected_fail_count = 29
         record_num = 0
         # print("========")
-        for res in results['Results']:
+        for res in results:
             record_num += 1
-            for val in res['Validations']:
-                if not val['Valid']:
-                    print("Record #: %d, SerialId: %s, Field: %s, Details: %s, \n=====\n%s" % (record_num, res['SerialId'], val['Field'], val['Details'], res['Record']))
+            for val in res.field_validations:
+                if not val.valid:
+                    print("Record #: %d, SerialId: %s, Field: %s, Details: %s, \n=====\n%s" % (record_num, res.serial_id, val.field, val.details, res.record))
                     fail_count += 1
         self.assertEquals(expected_fail_count, fail_count, "Expected %s faluires, got %s failures." % (expected_fail_count, fail_count))
         return True

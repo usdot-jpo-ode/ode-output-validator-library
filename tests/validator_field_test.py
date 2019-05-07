@@ -56,7 +56,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Field missing", validation_result.error)
+        self.assertEqual("Field missing", validation_result.details)
 
     def test_validate_returns_error_field_empty(self):
         test_field_object = {"Type":"decimal"}
@@ -64,7 +64,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":""}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Field empty", validation_result.error)
+        self.assertEqual("Field empty", validation_result.details)
 
     def test_validate_returns_error_enum_value_not_in_set(self):
         test_field_object = {"Type":"enum", "Values":"[\"alpha\", \"beta\", \"gamma\"]"}
@@ -72,7 +72,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":"delta"}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Value 'delta' not in list of known values: [alpha, beta, gamma]", validation_result.error)
+        self.assertEqual("Value 'delta' not in list of known values: [alpha, beta, gamma]", validation_result.details)
 
     def test_validate_returns_succeeds_enum_value_in_set(self):
         test_field_object = {"Type":"enum", "Values":"[\"alpha\", \"beta\", \"gamma\"]"}
@@ -87,7 +87,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":101}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Value '101' is greater than upper limit '100'", validation_result.error)
+        self.assertEqual("Value '101' is greater than upper limit '100'", validation_result.details)
 
     def test_validate_returns_succeeds_value_equals_upper_limit(self):
         test_field_object = {"Type":"decimal", "UpperLimit":100}
@@ -102,7 +102,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":49}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Value '49' is less than lower limit '50'", validation_result.error)
+        self.assertEqual("Value '49' is less than lower limit '50'", validation_result.details)
 
     def test_validate_returns_success_value_equals_lower_limit(self):
         test_field_object = {"Type":"decimal", "LowerLimit":50}
@@ -130,7 +130,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":"2019-03-14T14:54:20.000Z"}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Timestamp value '2019-03-14 14:54:20+00:00' occurs before earliest limit '2019-03-14 14:54:21+00:00'", validation_result.error)
+        self.assertEqual("Timestamp value '2019-03-14 14:54:20+00:00' occurs before earliest limit '2019-03-14 14:54:21+00:00'", validation_result.details)
 
     def test_validate_returns_error_timestamp_after_latest_time(self):
         test_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:20.000Z"}
@@ -138,7 +138,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":"2019-03-14T14:54:21.000Z"}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Timestamp value '2019-03-14 14:54:21+00:00' occurs after latest limit '2019-03-14 14:54:20+00:00'", validation_result.error)
+        self.assertEqual("Timestamp value '2019-03-14 14:54:21+00:00' occurs after latest limit '2019-03-14 14:54:20+00:00'", validation_result.details)
 
     def test_validate_returns_error_unparsable_timestamp(self):
         test_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:20.000Z"}
@@ -146,7 +146,7 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":"invalidTimeStamp"}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Failed to perform timestamp validation, error: ('Unknown string format:', 'invalidTimeStamp')", validation_result.error)
+        self.assertEqual("Failed to perform timestamp validation, error: ('Unknown string format:', 'invalidTimeStamp')", validation_result.details)
 
     def test_validate_returns_success_timestamp_before_latest_time(self):
         test_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:21.000Z"}

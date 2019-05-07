@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
-from .result import ValidationResult, ValidatorException
+from .result import FieldValidationResult, RecordValidationResult, ValidatorException
 from .sequential import Sequential
 
 TYPE_DECIMAL = 'decimal'
@@ -70,7 +70,7 @@ class Field:
         else:
             validation = self._check_unconditional(field_value)
 
-        return validation if validation else ValidationResult(True, "", self)
+        return validation if validation else FieldValidationResult(True, "", self)
 
     def check_value(self, data_field_value, data):
         validation = None
@@ -123,19 +123,19 @@ class Field:
             # then_part is not blank, missing nor 'optional'
             if not data_field_value:
                 # required field is missing
-                validation = ValidationResult(False, "Required Field is missing.", self)
+                validation = FieldValidationResult(False, "Required Field is missing.", self)
             elif isinstance(then_part, list):
                 # then_part must be an array of strings, one of which should match the data_field_value
                 if data_field_value not in then_part:
                     # the existing field value is not among the expected values
-                    validation = ValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part), self)
+                    validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part), self)
             else:
                 # then_part is an object with instruction on how to match the data_field_value
                 if 'startsWithField' in then_part:
                     sw_field_name = then_part['startsWithField']
                     sw_field_value = self._get_field_value(sw_field_name, data)
                     if sw_field_value and not data_field_value.startswith(sw_field_value):
-                        validation = ValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self)
+                        validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self)
         
         return validation
 
@@ -152,31 +152,31 @@ class Field:
 
     def _check_unconditional(self, data_field_value):
         if data_field_value is None:
-            return ValidationResult(False, "Field missing", self)
+            return FieldValidationResult(False, "Field missing", self)
         else:
             if data_field_value == "":
                 if self.allow_empty:
                     return None
                 else:
-                    return ValidationResult(False, "Field empty", self)
+                    return FieldValidationResult(False, "Field empty", self)
             else:
                 if self.type == TYPE_ENUM and str(data_field_value) not in self.values:
-                    return ValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(data_field_value), ', '.join(map(str, self.values))), self)
+                    return FieldValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(data_field_value), ', '.join(map(str, self.values))), self)
                 elif self.type == TYPE_DECIMAL:
                     if hasattr(self, 'upper_limit') and Decimal(data_field_value) > self.upper_limit:
-                        return ValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(data_field_value), self.upper_limit), self)
+                        return FieldValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(data_field_value), self.upper_limit), self)
                     if hasattr(self, 'lower_limit') and Decimal(data_field_value) < self.lower_limit:
-                        return ValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(data_field_value), self.lower_limit), self)
+                        return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(data_field_value), self.lower_limit), self)
                 elif self.type == TYPE_TIMESTAMP:
                     try:
                         time_value = dateutil.parser.parse(data_field_value)
                         if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
-                            return ValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self)
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self)
 
                         if hasattr(self, 'latest_time') and time_value > self.latest_time:
-                            return ValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self)
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self)
                     except Exception as e:
-                        return ValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self)
+                        return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self)
 
 class TestCase:
     def __init__(self, filepath=None):
@@ -197,11 +197,7 @@ class TestCase:
         validations = []
         for field in self.field_list:
             result = field.validate(data)
-            validations.append({
-                'Field': field.path,
-                'Valid': result.valid,
-                'Details': result.error
-            })
+            validations.append(result)
         return validations
 
     def validate_queue(self, msg_queue):
@@ -219,14 +215,10 @@ class TestCase:
                 if sanitized or record_type == 'rxMsg':
                     skip_sequential_checks = True
             field_validations = self._validate(current_msg)
-            results.append({
-                'SerialId': serial_id,
-                'Validations': field_validations,
-                'Record': current_msg
-            })
+            results.append(RecordValidationResult(serial_id, field_validations, current_msg))
 
         if skip_sequential_checks:
-            return {'Results': results}
+            return results
 
         seq = Sequential()
         sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
@@ -234,17 +226,9 @@ class TestCase:
         sequential_validations = seq.perform_sequential_validations(sorted_list)
         serialized = []
         for x in sequential_validations:
-            serialized.append({
-                'Field': "SequentialCheck",
-                'Valid': x.valid,
-                'Details': x.error
-            })
+            serialized.append(FieldValidationResult("SequentialCheck", x.valid, x.details))
 
-        results.append({
-                    'SerialId': None,
-                    'Validations': serialized,
-                    'Record': "NA"
-                })
+        results.append(RecordValidationResult(None, serialized, "NA"))
 
-        return {'Results': results}
+        return results
 
