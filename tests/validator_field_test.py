@@ -3,13 +3,13 @@ import unittest
 import queue
 
 class FieldUnitTest(unittest.TestCase):
-    def test_constructor_fails_no_path(self):
-        input_field_object = {}
+    def test_constructor_fails_no_key(self):
+        input_field_object = {'Type': 'string'}
         try:
             Field("", input_field_object)
             self.fail("Expected ValidatorException")
         except ValidatorException as e:
-            self.assertEqual("Missing required configuration property 'Path' for field '{}'", str(e))
+            self.assertEqual("Invlid configuration property definition for field ={'Type': 'string'}", str(e))
 
     def test_constructor_fails_no_type(self):
         input_field_object = {}
@@ -17,7 +17,7 @@ class FieldUnitTest(unittest.TestCase):
             Field("a.b.c", input_field_object)
             self.fail("Expected ValidatorException")
         except ValidatorException as e:
-            self.assertEqual("Missing required configuration property 'Type' for field '{'Path': 'a.b.c'}'", str(e))
+            self.assertEqual("Missing required configuration property 'Type' for field a.b.c={}", str(e))
 
     def test_constructor_fails_invalid_earliesttime(self):
         input_field_object = {"Type":"timestamp", "EarliestTime":"invalidtimestamp"}
@@ -25,7 +25,7 @@ class FieldUnitTest(unittest.TestCase):
             Field("a.b.c", input_field_object)
             self.fail("Expected ValidatorException")
         except ValidatorException as e:
-            self.assertEqual("Unable to parse configuration file timestamp EarliestTime for field {'Path': 'a.b.c', 'Type': 'timestamp', 'EarliestTime': 'invalidtimestamp'}, error: ('Unknown string format:', 'invalidtimestamp')", str(e))
+            self.assertEqual("Unable to parse configuration file timestamp EarliestTime for field a.b.c={'Type': 'timestamp', 'EarliestTime': 'invalidtimestamp'}, error: ('Unknown string format:', 'invalidtimestamp')", str(e))
 
     def test_constructor_succeeds_valid_earliesttime(self):
         input_field_object = {"Type":"timestamp", "EarliestTime":"2019-03-14T14:54:21.596Z"}
@@ -38,7 +38,7 @@ class FieldUnitTest(unittest.TestCase):
             Field("a.b.c", input_field_object)
             self.fail("Expected ValidatorException")
         except ValidatorException as e:
-            self.assertEqual("Unable to parse configuration file timestamp LatestTime for field {'Path': 'a.b.c', 'Type': 'timestamp', 'LatestTime': 'invalidtimestamp'}, error: ('Unknown string format:', 'invalidtimestamp')", str(e))
+            self.assertEqual("Unable to parse configuration file timestamp LatestTime for field a.b.c={'Type': 'timestamp', 'LatestTime': 'invalidtimestamp'}, error: ('Unknown string format:', 'invalidtimestamp')", str(e))
 
     def test_constructor_succeeds_valid_latesttime(self):
         input_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:21.596Z"}

@@ -21,9 +21,11 @@ class Field:
     def __init__(self, key, field):
         # extract required settings
         self.path = key
+        if not self.path:
+            raise ValidatorException("Invlid configuration property definition for field %s=%s" % (key, field))
         self.type = field.get('Type')
-        if self.type is None:
-            raise ValidatorException("Missing required configuration property 'Type' for field '%s'" % field)
+        if not self.type:
+            raise ValidatorException("Missing required configuration property 'Type' for field %s=%s" % (key, field))
 
         # extract constraints
         upper_limit = field.get('UpperLimit')
@@ -43,7 +45,7 @@ class Field:
             try:
                 self.earliest_time = dateutil.parser.parse(earliest_time)
             except Exception as e:
-                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s, error: %s" % (field, str(e)))
+                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (key, field, str(e)))
         latest_time = field.get('LatestTime')
         if latest_time is not None:
             if latest_time == 'NOW':
@@ -52,7 +54,7 @@ class Field:
                 try:
                     self.latest_time = dateutil.parser.parse(latest_time)
                 except Exception as e:
-                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s, error: %s" % (field, str(e)))
+                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field, str(e)))
 
         self.allow_empty = False
         allow_empty = field.get('AllowEmpty')
