@@ -9,10 +9,7 @@ class FieldValidationResult:
         self.valid = valid
         self.details = details
 
-    def _print(self):
-        print(json.dumps(self.to_json()))
-
-    def to_json(self):
+    def __str__(self):
         return {"Field": self.field, "Valid": self.valid, "Details": self.details}
 
 class RecordValidationResult:
@@ -21,8 +18,8 @@ class RecordValidationResult:
         self.field_validations = field_validations
         self.record = record
 
-    def _print(self):
-        print(json.dumps(self.to_json()))
-
-    def to_json(self):
-        return {"SerialId": self.serial_id, "Validations": self.field_validations, "Record": self.record}
+    def __str__(self):
+        json_field_validations = []
+        for field_val in self.field_validations:
+            json_field_validations.append(field_val.to_json())
+        return {"SerialId": self.serial_id, "Validations": json_field_validations, "Record": self.record}
