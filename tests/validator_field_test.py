@@ -135,10 +135,10 @@ class FieldUnitTest(unittest.TestCase):
     def test_validate_returns_error_timestamp_after_latest_time(self):
         test_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:20.000Z"}
         test_field = Field("a.b", test_field_object)
-        test_data = {"a":{"b":"2019-03-14T14:54:21.000Z"}}
+        test_data = {"a":{"b":"2019-03-14T14:56:20.000Z"}}
         validation_result = test_field.validate(test_data)
         self.assertFalse(validation_result.valid)
-        self.assertEqual("Timestamp value '2019-03-14 14:54:21+00:00' occurs after latest limit '2019-03-14 14:54:20+00:00'", validation_result.details)
+        self.assertEqual("Timestamp value '2019-03-14 14:56:20+00:00' occurs after latest limit '2019-03-14 14:54:20+00:00'", validation_result.details)
 
     def test_validate_returns_error_unparsable_timestamp(self):
         test_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:20.000Z"}
