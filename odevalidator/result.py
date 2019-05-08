@@ -4,8 +4,8 @@ class ValidatorException(Exception):
     pass
 
 class FieldValidationResult:
-    def __init__(self, valid = True, details = "", field = None):
-        self.field = field
+    def __init__(self, valid = True, details = "", field_path = None):
+        self.field_path = field_path
         self.valid = valid
         self.details = details
 
@@ -13,7 +13,7 @@ class FieldValidationResult:
         return json.dumps(self.to_json())
 
     def to_json(self):
-        return {"Field": self.field, "Valid": self.valid, "Details": self.details}
+        return {"Field": self.field_path, "Valid": self.valid, "Details": self.details}
 
 class RecordValidationResult:
     def __init__(self, serial_id, field_validations, record):

@@ -5,11 +5,11 @@ import logging
 import pkg_resources
 import queue
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from pathlib import Path
 from .result import FieldValidationResult, RecordValidationResult, ValidatorException
-from .sequential import Sequential
+from .sequential import Sequential, SEQUENTIAL_CHECK
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
@@ -18,35 +18,39 @@ TYPE_STRING = 'string'
 THEN_PART_OPTIONAL = 'optional'
 
 class Field:
-    def __init__(self, key, field):
+    def __init__(self, key, field_config = None):
         # extract required settings
         self.path = key
         if not self.path:
-            raise ValidatorException("Invlid configuration property definition for field %s=%s" % (key, field))
-        self.type = field.get('Type')
+            raise ValidatorException("Invlid configuration property definition for field %s=%s" % (key, field_config))
+
+        if field_config is None:
+            return
+
+        self.type = field_config.get('Type')
         if not self.type:
-            raise ValidatorException("Missing required configuration property 'Type' for field %s=%s" % (key, field))
+            raise ValidatorException("Missing required configuration property 'Type' for field %s=%s" % (key, field_config))
 
         # extract constraints
-        upper_limit = field.get('UpperLimit')
+        upper_limit = field_config.get('UpperLimit')
         if upper_limit is not None:
             self.upper_limit = Decimal(upper_limit)
-        lower_limit = field.get('LowerLimit')
+        lower_limit = field_config.get('LowerLimit')
         if lower_limit is not None:
             self.lower_limit = Decimal(lower_limit)
-        values = field.get('Values')
+        values = field_config.get('Values')
         if values is not None:
             self.values = json.loads(values)
-        equals_value = field.get('EqualsValue')
+        equals_value = field_config.get('EqualsValue')
         if equals_value is not None:
             self.equals_value = json.loads(str(equals_value))
-        earliest_time = field.get('EarliestTime')
+        earliest_time = field_config.get('EarliestTime')
         if earliest_time is not None:
             try:
                 self.earliest_time = dateutil.parser.parse(earliest_time)
             except Exception as e:
-                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (key, field, str(e)))
-        latest_time = field.get('LatestTime')
+                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
+        latest_time = field_config.get('LatestTime')
         if latest_time is not None:
             if latest_time == 'NOW':
                 self.latest_time = datetime.now(timezone.utc)
@@ -54,10 +58,10 @@ class Field:
                 try:
                     self.latest_time = dateutil.parser.parse(latest_time)
                 except Exception as e:
-                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field, str(e)))
+                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
 
         self.allow_empty = False
-        allow_empty = field.get('AllowEmpty')
+        allow_empty = field_config.get('AllowEmpty')
         if allow_empty is not None:
             self.allow_empty = True if allow_empty == "True" else False
             
@@ -70,7 +74,7 @@ class Field:
         else:
             validation = self._check_unconditional(field_value)
 
-        return validation if validation else FieldValidationResult(True, "", self)
+        return validation if validation else FieldValidationResult(True, "", self.path)
 
     def check_value(self, data_field_value, data):
         validation = None
@@ -123,19 +127,19 @@ class Field:
             # then_part is not blank, missing nor 'optional'
             if not data_field_value:
                 # required field is missing
-                validation = FieldValidationResult(False, "Required Field is missing.", self)
+                validation = FieldValidationResult(False, "Required Field is missing.", self.path)
             elif isinstance(then_part, list):
                 # then_part must be an array of strings, one of which should match the data_field_value
                 if data_field_value not in then_part:
                     # the existing field value is not among the expected values
-                    validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part), self)
+                    validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part), self.path)
             else:
                 # then_part is an object with instruction on how to match the data_field_value
                 if 'startsWithField' in then_part:
                     sw_field_name = then_part['startsWithField']
                     sw_field_value = self._get_field_value(sw_field_name, data)
                     if sw_field_value and not data_field_value.startswith(sw_field_value):
-                        validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self)
+                        validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self.path)
         
         return validation
 
@@ -152,31 +156,46 @@ class Field:
 
     def _check_unconditional(self, data_field_value):
         if data_field_value is None:
-            return FieldValidationResult(False, "Field missing", self)
+            return FieldValidationResult(False, "Field missing", self.path)
         else:
             if data_field_value == "":
                 if self.allow_empty:
                     return None
                 else:
-                    return FieldValidationResult(False, "Field empty", self)
+                    return FieldValidationResult(False, "Field empty", self.path)
             else:
                 if self.type == TYPE_ENUM and str(data_field_value) not in self.values:
-                    return FieldValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(data_field_value), ', '.join(map(str, self.values))), self)
+                    return FieldValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(data_field_value), ', '.join(map(str, self.values))), self.path)
                 elif self.type == TYPE_DECIMAL:
                     if hasattr(self, 'upper_limit') and Decimal(data_field_value) > self.upper_limit:
-                        return FieldValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(data_field_value), self.upper_limit), self)
+                        return FieldValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(data_field_value), self.upper_limit), self.path)
                     if hasattr(self, 'lower_limit') and Decimal(data_field_value) < self.lower_limit:
-                        return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(data_field_value), self.lower_limit), self)
+                        return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(data_field_value), self.lower_limit), self.path)
                 elif self.type == TYPE_TIMESTAMP:
                     try:
                         time_value = dateutil.parser.parse(data_field_value)
                         if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
-                            return FieldValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self)
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self.path)
 
-                        if hasattr(self, 'latest_time') and time_value > self.latest_time:
-                            return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self)
+                        if hasattr(self, 'latest_time') and time_value > (self.latest_time + timedelta(minutes=1)):
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self.path)
                     except Exception as e:
-                        return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self)
+                        return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self.path)
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+    def to_json(self):
+        return {
+            'Path': self.path, 
+            'Type': self.type, 
+            'UpperLimit': self.upper_limit, 
+            'LowerLimit': self.lower_limit,
+            'Values': self.values,
+            'EqualsValue': self.equals_value,
+            'EarliestTime': self.earliest_time,
+            'LatestTime': self.latest_time,
+            'AllowEmpty': self.allow_empty}
 
 class TestCase:
     def __init__(self, filepath=None):
@@ -226,9 +245,9 @@ class TestCase:
         sequential_validations = seq.perform_sequential_validations(sorted_list)
         serialized = []
         for x in sequential_validations:
-            serialized.append(FieldValidationResult("SequentialCheck", x.valid, x.details))
+            serialized.append(FieldValidationResult(valid = x.valid, details = x.details, field_path = SEQUENTIAL_CHECK))
 
-        results.append(RecordValidationResult(None, serialized, "NA"))
+        results.append(RecordValidationResult(serial_id = None, field_validations = serialized, record = None))
 
         return results
 
