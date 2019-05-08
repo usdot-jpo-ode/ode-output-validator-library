@@ -14,7 +14,7 @@ class SequentialUnitTest(unittest.TestCase):
         print("Testing Happy Path ...")
         record_list = self.build_happy_path(json_seed)
         result = seq.perform_sequential_validations(record_list)
-        for x in result: x._print()
+        for x in result: print(x)
 
         # test missing/duplicate recordId
         print("Testing Missing/Duplicate recordIds ...")
@@ -23,7 +23,7 @@ class SequentialUnitTest(unittest.TestCase):
         for record in record_list_missing[1:]:
             record['metadata']['serialId']['recordId'] = prev_record['metadata']['serialId']['recordId']
         result = seq.perform_sequential_validations(record_list_missing)
-        for x in result: x._print()
+        for x in result: print(x)
 
         # test invalid bundleSize
         print("Testing Invalid bundleSize ...")
@@ -31,7 +31,7 @@ class SequentialUnitTest(unittest.TestCase):
         for record in record_list_invalid_bundleSize:
             record['metadata']['serialId']['bundleSize'] = 9999
         result = seq.perform_sequential_validations(record_list_invalid_bundleSize)
-        for x in result: x._print()
+        for x in result: print(x)
 
 
     def build_happy_path(self, json_seed):
