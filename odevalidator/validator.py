@@ -15,7 +15,6 @@ TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
 TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
-THEN_PART_OPTIONAL = 'optional'
 
 class Field:
     def __init__(self, key, field_config = None):
@@ -70,13 +69,13 @@ class Field:
         field_value = self._get_field_value(self.path, data)
 
         if hasattr(self, 'equals_value'):
-            validation = self.check_value(field_value, data)
+            validation = self._check_value(field_value, data)
         else:
             validation = self._check_unconditional(field_value)
 
         return validation if validation else FieldValidationResult(True, "", self.path)
 
-    def check_value(self, data_field_value, data):
+    def _check_value(self, data_field_value, data):
         validation = None
 
         if isinstance(self.equals_value, Iterable):
@@ -123,23 +122,23 @@ class Field:
 
     def _process_then_part(self, then_part, data_field_value, data):
         validation = None
-        if then_part and then_part != THEN_PART_OPTIONAL:
+        if then_part:
             # then_part is not blank, missing nor 'optional'
             if not data_field_value:
                 # required field is missing
                 validation = FieldValidationResult(False, "Required Field is missing.", self.path)
-            elif isinstance(then_part, list):
-                # then_part must be an array of strings, one of which should match the data_field_value
-                if data_field_value not in then_part:
-                    # the existing field value is not among the expected values
-                    validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part), self.path)
             else:
-                # then_part is an object with instruction on how to match the data_field_value
                 if 'startsWithField' in then_part:
+                    # data_field_value must starts with the value of the given data field
                     sw_field_name = then_part['startsWithField']
                     sw_field_value = self._get_field_value(sw_field_name, data)
                     if sw_field_value and not data_field_value.startswith(sw_field_value):
                         validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self.path)
+                elif 'matchAgainst' in then_part and isinstance(then_part['matchAgainst'], list):
+                    # then_part is expected to be an array of strings, one of which should match the data_field_value
+                    if data_field_value not in then_part['matchAgainst']:
+                        # the existing field value is not among the expected values
+                        validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
         
         return validation
 

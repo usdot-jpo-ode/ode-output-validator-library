@@ -10,6 +10,8 @@ Contains shared library functions for validating ODE message output schemas and 
 3.  [Validation Details and Limitations](#validation-details-and-limitations)
 4.  [Configuration](#configuration)
 5.  [Unit Testing](#unit-testing)
+6.  [Where Used](#where-used)
+7.  [Release Notes](#release-notes)
 
 <a name="summary"/>
 
@@ -85,7 +87,7 @@ The library is designed to encapsulate functionality that is most useful for all
 1. `odevalidator` requires only one configuration file.
 2. Test cases declare conditional fields or fields that are only checked if some other condition is met.
 3. Data files with multiple types of messages will be processed based on the conditional statements in the config file.
-4. Test cases can have "optional fields". If fields are declared in the configuration file, they are considered as required
+4. Test cases can have optional fields. If fields are declared in the configuration file, they are considered as required
    fields *unless* an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
 
 #### 2. Non-configurable, implicit, stateful checks
@@ -137,7 +139,7 @@ test_case = TestCase(
 
 **Return Type**
 
-`Object`
+`TestCase` object
 
 **Usage Example**
 ```
@@ -167,55 +169,66 @@ results = test_case.validate(
 
 **Return Type**
 
-`dict`
+Array of `RecordValidationResult` objects:
+```
+class RecordValidationResult:
+    def __init__(self, serial_id, field_validations, record):
+        self.serial_id = serial_id
+        self.field_validations = field_validations
+        self.record = record
+```
 
 **Response Syntax**
-The following are examples of a stateless and stateful responses:
+The following is a truncated examples of the `validate_queue` response. Full sample can be 
+viewed by following the provided link:
 
-***Stateless***
 ```
-{ 'Results': [
+[
     {
-      'RecordID': 123,
-      'Validations': [
-        {
-          'Field': 'string',
-          'Valid': True|False,
-          'Details': 'string'
-        }],
-      'Record': 'string'
-    }]
-}
+      "SerialId": "{'recordId': 0, 'serialNumber': 597, 'streamId': '78a7d3a0-8578-496a-85b6-c5796034eaef', 'bundleSize': 1, 'bundleId': 26}",
+	"Validations": [{
+			"Field": "metadata.recordGeneratedAt",
+			"Valid": true,
+			"Details": ""
+		}, {
+			"Field": "metadata.recordGeneratedBy",
+			"Valid": true,
+			"Details": ""
+		}, 
+		...
+	],
+	"Record": {
+		"metadata": {
+			"securityResultCode": "success",
+			"recordGeneratedBy": "OBU",
+		...
+	}, {
+		"SerialId": null,
+		"Validations": [{
+				"Field": "SequentialCheck",
+				"Valid": true,
+				"Details": ""
+			}
+		],
+		"Record": null
+	}
+]
 ```
 
-***Stateful***
-```
-{ 'Results': [
-    {
-      'RecordID': -1,
-      'Validations': [
-        {
-		  'Field': "SequentialCheck",
-          'Valid': True|False,
-          'Details': 'string'
-        }],
-	  'Record': "NA"
-    }]
-}
-```
+[validate_queue() response Full Sample](validate_queue_response_full_sample.json)
+
 
 **Response Structure**
 
-- (_dict_)
-  - **Results** (_list_)
+- (_list_)
     - (_dict_)
-      - **RecordID** (_string_) Index of the message, taken from recordId metadata field. _For stateful contextual checks, the value of this field will be set to -1._
+      - **SerialId** (_string_) SerialId field in the message metadata serves as a `key` to uniquely identify the record._
       - **Validations** (_list_) List of validation results for each analyzed field.
         - (_dict_)
           - **Field** (_string_) JSON path of the analyzed field. _For stateful contextual checks, the value of this field will be `SequentialCheck`._
           - **Valid** (_boolean_) Whether the field passed validation (True) or failed (False).
           - **Details** (_string_) Further information about the check, including error messages if the check failed.
-      - **Record** (_string_) The full record in JSON string format. _For stateful contextual checks, the value of this field will be `NA`._
+      - **Record** (_string_) The full record in JSON string format. _For stateful contextual checks, the value of this field will be `null`._
 
 **Usage Example**
 ```
@@ -235,18 +248,18 @@ The configuration file is a standard `.ini` file where each field is configured 
 **Field configuration syntax:**
 
 ```
-[fieldName]
-Path = json.path.to.field
+[json.path.to.field]
 Type = decimal|enum|string|timestamp
 Values = ["list", "of", "possible", "values"]
 EqualsValue = json
 UpperLimit = 123
 LowerLimit = -123
+AllowEmpty = True
 ```
 
 **Field configuration structure:**
 
-- `Path` \[**REQUIRED**\]
+- `[json.path.to.field]` \[**REQUIRED**\]
   - Summary: Identifies the field location within the message
   - Value: JSON path to the field, separated using periods
   - Example matching `json.path.to.field`:
@@ -272,57 +285,91 @@ LowerLimit = -123
       - Specifies that the field is a string
     - timestamp
       - Values of this type will be validated by testing for parsability
+- `AllowEmpty` _[Optional]_
+  - Summary: Fields can be specified to allow empty value by setting `AllowEmpty = True`.
+  - Value: True or False
 - `EqualsValue` \[_optional_\]
   - Summary: Sets the expected value of this field based on the given specifications in json format.
     Validation check for the field will fail if the value does not comply with at least one of the given conditions.
   - Value: Expected value: A json string with the following schema:
 ```
-{
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Schema for EqualsValue field of the odevalidator config file.",
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "conditions": {
-      "description": "This object specifies an array of conditions to be evaluated and matched with the value of this field validation. The specification is in the form of a `if-then` statement. `ifPart` references another data field (`fieldName`) and a list of values (`fieldValues`). `thenPart` provides the valid values for this field validation if the `ifPart` condition is satisifed. If the `ifPart` condition is not satisied, the logic will check the next `condition` until one is satisfied or none are satisifed. If no condition is satisied, the field validation is considered optional. Therefore, if a field is required but conditional, all possible values should be provided as conditions. Search for conditions `short-circuit` as soon as a condition is met.",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Conditions"
-      }
-    },
-    "startsWithField": {
-      "description": "The value of this property is a fully qualified path to another data field. The value of this field is expected to be `start` with the value of the referenced data field.",
-      "type": "string"
-    }
-  },
-  "Conditions": {
-    "ifPart": {
-      "description": "This object specifies a condition to be evaluated and matched with the value of the field validation. This specification references another data field (`fieldName`) and a list of paossible valid values (`fieldValues`) to be matched.",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "fieldName": {
-          "description": "This object specifies data field. This condition is met if the value of the field given by the `fieldName` equals one of the values given by `fieldValues`",
-          "type": "string"
-        },
-        "fieldValues": {
-          "description": "This element of the `ifPart`a list of values for `fieldName` that would satisfy this condition.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "thenPart": {
-      "description": "This element provides the valid values for this field validation given that one of conditions is met. If no condition is satisied, the field validation is considered optional. Therefore, if a field is required but conditional, all possible values should be provided as conditions.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    }
-  }
-}
+"$schema": http://json-schema.org/draft-04/schema#
+title: Schema for EqualsValue field of the odevalidator config file.
+type: object
+additionalProperties: false
+properties:
+  conditions:
+    description: This object specifies an array of conditions to be evaluated and
+      matched with the value of this field validation. The specification is in the
+      form of a `if-then` statement. `ifPart` references another data field (`fieldName`)
+      and a list of values (`fieldValues`). `thenPart` provides the valid values for
+      this field validation if the `ifPart` condition is satisfied. If the `ifPart`
+      condition is not satisied, the logic will check the next `condition` until one
+      is satisfied or none are satisfied. If no condition is satisfied, the field validation
+      is considered optional. Therefore, if a field is required but conditional, all
+      possible values should be provided as conditions. Search for conditions `short-circuit`
+      as soon as a condition is met.
+    type: array
+    items:
+      "$ref": "#/definitions/Conditions"
+	  
+definitions:
+  Conditions:
+    ifPart:
+      description: This object specifies a condition to be evaluated and matched with
+        the value of the field validation. This specification references another data
+        field (`fieldName`) and a list of paossible valid values (`fieldValues`) to
+        be matched.
+      type: object
+      additionalProperties: false
+      properties:
+        fieldName:
+          description: This object specifies data field. This condition is met if
+            the value of the field given by the `fieldName` equals one of the values
+            given by `fieldValues`
+          type: string
+        fieldValues:
+          description: This element of the `ifPart`a list of values for `fieldName`
+            that would satisfy this condition.
+          type: array
+          items:
+            type: string
+    thenPart:
+      description: This element provides the valid values for this field validation
+        given that one of conditions is met. If no condition is satisfied, the field
+        validation is considered optional. Therefore, if a field is required but conditional,
+        all possible values should be provided in the `fieldValues` of all the conditions,
+        collectively. If a possible value is not included in a condition, the field
+        will be treated as required for that value. Python configuration file variable
+        dereferencing (for example, ${Values} or ${metadata.recordType:Values}) can
+        be used to reference any the value of any configuration item when specifying
+        the condition. `then_part` can be an empty array or completely missing which
+        would mean that the field is optional if the `if_part` condition is met. The
+        `fieldValue` of the `ifPart` can also be eliminated which would mean that
+        if the field identified by the `fieldName` of the `ifPart` exists, the field
+        has to be validated. If it the field doesn't exist, it is considered optional
+        and no validation error is issued.
+      type: array
+      items:
+        type:
+          "$ref": "#/definitions/ThenPart"
+		  
+  ThenPart:
+    description: This is the data schema for `thenPart` component of `EqualsValue` config option
+    type: object
+    properties:
+      startsWithField:
+        description: The value of this property is a fully qualified path to another data field.
+          The value of this field is expected to `start` with the value of 
+          the referenced data field.
+        type: string
+
+      matchAgainst:	  
+        description: The value of this property is an array of values. The data fields
+          value should match one of the values in this array to be considered valid.
+        type: array
+        items:
+          type: string
 ```
 
 The following conditional field validation states that the value of `metadata.payloadType` must be equal `us.dot.its.jpo.ode.model.OdeBsmPayload` if
@@ -441,9 +488,9 @@ EqualsValue = {"startsWithField": "metadata.recordType"}
   - Value: ISO timestamp: `LatestTime = 2018-12-03T00:00:00.000Z`
   - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
 
-**[Sample Files](samples)**
-- [Sample Configuration File](samples/bsmTx.ini)
-- [Sample Data File](bsmTx.json)
+**Files**
+- [Default Configuration File](odevalidator/config.ini)
+- [Sample Data File](../../../data/bsmTx.json)
 
 <a name="unit-testing"/>
 
@@ -482,3 +529,49 @@ deactivate
 ```
 </p>
 </details>
+
+<a name="where-used"/>
+
+## Where Used
+This library is used in the following test and verification applications as of this release:
+
+* [ODE Test Harness](https://github.com/usdot-jpo-ode/jpo-ode)
+* [DataHub Canary](https://github.com/usdot-its-jpo-data-portal/canary-lambda)
+
+<a name="release-notes"/>
+
+## Release Notes
+### Release 0.0.4
+* Config.ini changes
+	* Added `metadata.request` elements to config.ini
+	* Eliminated the Path option in config.ini because the section keys have to be unique and there
+is always a possibility that two keys at different structures be named the same. SO now the section key
+has to be the ful path of the field name.
+	* Took advantage of python configuration file variable dereferencing
+	* `config.ini` `then_part` can now be an empty array or completely missing which would mean that the field is
+optional if the `if_part` condition is met. 
+	* The `fieldValue` of the `ifPart` can also be eliminated which would mean that the if the field identified by
+the `fieldName` of the `ifPart` exists, the field has to be validated. If it the field doesn't exist, 
+it is considered optional and no validation error is issued.
+	* Fields can now be specified to allow empty value by setting `AllowEmpty = True`. Currently only
+`elevation` is allowed to be empty.	
+* Added field info to `FieldValidationResult` (renamed from ValidationResult) objects
+* Added serialId to the `RecordValidationResult` (NEW) object. This replaces RecordID.
+* `Field, FieldValidationResult and RecordValidationResult` objects now have `__str__()` method 
+which allows them to be serialized for printing purposes.
+* Test files `good.json` and `bad.json` were updated with new tests for Broadcast TIM
+
+### Release 0.0.3
+Various clean ups to make the library production ready.
+
+### Release 0.0.2
+Added optional and conditional configuration of field validations allowing the same
+config file to be used accross mutltiple data types/schemas.
+
+### Release 0.0.1
+Initial Release of odevalidator including the following features:
+
+* Validation of each data field based on the configuration parameters providing valid values,
+and ranges.
+* Validation of sequential fields such as recordId, serialNumber, timestamps detecting
+gaps and duplication of the sequential numbers and out of order timestamps.

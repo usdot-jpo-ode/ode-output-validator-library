@@ -1,0 +1,353 @@
+[{
+		"SerialId": "{'recordId': 0, 'serialNumber': 597, 'streamId': '78a7d3a0-8578-496a-85b6-c5796034eaef', 'bundleSize': 1, 'bundleId': 26}",
+		"Validations": [{
+				"Field": "metadata.recordGeneratedAt",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.recordGeneratedBy",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.recordType",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.sanitized",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.schemaVersion",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.securityResultCode",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.bsmSource",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.payloadType",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.logFileName",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.odeReceivedAt",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.serialId",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.serialId.streamId",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.serialId.bundleSize",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.serialId.bundleId",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.serialId.recordId",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.serialId.serialNumber",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.receivedMessageDetails.locationData.latitude",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.receivedMessageDetails.locationData.longitude",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.receivedMessageDetails.locationData.elevation",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.receivedMessageDetails.locationData.speed",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.receivedMessageDetails.locationData.heading",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.receivedMessageDetails.rxSource",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.ode.verb",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.ode.version",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.sdw.recordId",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.sdw.serviceRegion.nwCorner.latitude",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.sdw.serviceRegion.nwCorner.longitude",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.sdw.serviceRegion.seCorner.latitude",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.sdw.serviceRegion.seCorner.longitude",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.sdw.ttl",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.rsus.rsus.rsuTarget",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.rsus.rsus.rsuRetries",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.rsus.rsus.rsuTimeout",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.rsus.rsus.rsuIndex",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.mode",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.deliverystart",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.deliverystop",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.rsuid",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.enable",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.channel",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.msgid",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.interval",
+				"Valid": true,
+				"Details": ""
+			}, {
+				"Field": "metadata.request.snmp.status",
+				"Valid": true,
+				"Details": ""
+			}
+		],
+		"Record": {
+			"metadata": {
+				"securityResultCode": "success",
+				"recordGeneratedBy": "OBU",
+				"receivedMessageDetails": {
+					"locationData": {
+						"elevation": 1372.4,
+						"heading": 297.3,
+						"latitude": 40.5655211,
+						"speed": 0.46,
+						"longitude": -105.0323263
+					},
+					"rxSource": "NA"
+				},
+				"schemaVersion": 6,
+				"payloadType": "us.dot.its.jpo.ode.model.OdeTimPayload",
+				"serialId": {
+					"recordId": 0,
+					"serialNumber": 597,
+					"streamId": "78a7d3a0-8578-496a-85b6-c5796034eaef",
+					"bundleSize": 1,
+					"bundleId": 26
+				},
+				"sanitized": false,
+				"recordGeneratedAt": "2018-05-02T16:47:45.603Z",
+				"recordType": "dnMsg",
+				"logFileName": "dnMsg.gz",
+				"odeReceivedAt": "2019-05-08T14:13:31.698Z"
+			},
+			"payload": {
+				"data": {
+					"MessageFrame": {
+						"messageId": 31,
+						"value": {
+							"TravelerInformation": {
+								"timeStamp": 174827,
+								"packetID": "D3BAFF020000000000",
+								"dataFrames": {
+									"TravelerDataFrame": {
+										"regions": {
+											"GeographicalPath": {
+												"anchor": {
+													"elevation": 14742,
+													"lat": 405662581,
+													"long": -1050326099
+												},
+												"laneWidth": 400,
+												"directionality": {
+													"forward": ""
+												},
+												"description": {
+													"path": {
+														"offset": {
+															"xy": {
+																"nodes": {
+																	"NodeXY": [{
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050329714,
+																					"lat": 405662567
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050335237,
+																					"lat": 405662769
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050335993,
+																					"lat": 405663179
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050336397,
+																					"lat": 405664057
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050336440,
+																					"lat": 405667220
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050336660,
+																					"lat": 405671451
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050336938,
+																					"lat": 405672504
+																				}
+																			}
+																		}, {
+																			"delta": {
+																				"node-LatLon": {
+																					"lon": -1050337672,
+																					"lat": 405672940
+																				}
+																			}
+																		}
+																	]
+																}
+															}
+														}
+													}
+												},
+												"direction": 1111111111111111
+											}
+										},
+										"duratonTime": 2880,
+										"sspMsgRights1": 1,
+										"sspMsgRights2": 1,
+										"sspTimRights": 1,
+										"sspLocationRights": 1,
+										"frameType": {
+											"advisory": ""
+										},
+										"msgId": {
+											"furtherInfoID": "0214"
+										},
+										"startTime": 174826,
+										"priority": 7,
+										"content": {
+											"advisory": {
+												"SEQUENCE": [{
+														"item": {
+															"itis": 532
+														}
+													}, {
+														"item": {
+															"itis": 531
+														}
+													}, {
+														"item": {
+															"text": "User Initiated Distress"
+														}
+													}, {
+														"item": {
+															"text": "Vehicle-Class: Unknown"
+														}
+													}
+												]
+											}
+										}
+									}
+								},
+								"msgCnt": 51
+							}
+						}
+					}
+				},
+				"dataType": "TravelerInformation"
+			}
+		}
+	}, {
+		"SerialId": null,
+		"Validations": [{
+				"Field": "SequentialCheck",
+				"Valid": true,
+				"Details": ""
+			}
+		],
+		"Record": null
+	}
+]
