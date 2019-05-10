@@ -1,6 +1,7 @@
-from odevalidator import Field, ValidatorException
 import unittest
 import queue
+import json
+from odevalidator import Field, ValidatorException
 
 class FieldUnitTest(unittest.TestCase):
     def test_constructor_fails_no_key(self):
@@ -9,7 +10,7 @@ class FieldUnitTest(unittest.TestCase):
             Field("", input_field_object)
             self.fail("Expected ValidatorException")
         except ValidatorException as e:
-            self.assertEqual("Invlid configuration property definition for field ={'Type': 'string'}", str(e))
+            self.assertEqual("Invalid configuration property definition for field ={'Type': 'string'}", str(e))
 
     def test_constructor_fails_no_type(self):
         input_field_object = {}
@@ -18,6 +19,9 @@ class FieldUnitTest(unittest.TestCase):
             self.fail("Expected ValidatorException")
         except ValidatorException as e:
             self.assertEqual("Missing required configuration property 'Type' for field a.b.c={}", str(e))
+
+    def test_constructor_fails_no_field_config(self):
+        self.assertEquals('{"Path": "a.b.c", "Type": null, "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": null, "LatestTime": null, "AllowEmpty": null}', str(Field("a.b.c")))
 
     def test_constructor_fails_invalid_earliesttime(self):
         input_field_object = {"Type":"timestamp", "EarliestTime":"invalidtimestamp"}
@@ -161,3 +165,10 @@ class FieldUnitTest(unittest.TestCase):
         test_data = {"a":{"b":"2019-03-14T14:54:21.000Z"}}
         validation_result = test_field.validate(test_data)
         self.assertTrue(validation_result.valid)
+
+    def testFieldSerialization(self):
+        test_field_object = {"Type":"timestamp", "EarliestTime":"2019-03-14T14:54:20.000Z"}
+        test_field = Field("a.b.c", test_field_object)
+        self.assertEquals('{"Path": "a.b.c", "Type": "timestamp", "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": "2019-03-14T14:54:20+00:00", "LatestTime": null, "AllowEmpty": false}', json.dumps(test_field.to_json()))
+        self.assertEquals('{"Path": "a.b.c", "Type": "timestamp", "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": "2019-03-14T14:54:20+00:00", "LatestTime": null, "AllowEmpty": false}', str(test_field))
+

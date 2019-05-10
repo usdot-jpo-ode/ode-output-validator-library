@@ -1,11 +1,11 @@
 from configparser import ConfigParser, ExtendedInterpolation
 import dateutil.parser
+from datetime import datetime, timezone, timedelta
 import json
 import logging
 import pkg_resources
 import queue
 from collections.abc import Iterable
-from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from pathlib import Path
 from .result import FieldValidationResult, RecordValidationResult, ValidatorException
@@ -21,7 +21,7 @@ class Field:
         # extract required settings
         self.path = key
         if not self.path:
-            raise ValidatorException("Invlid configuration property definition for field %s=%s" % (key, field_config))
+            raise ValidatorException("Invalid configuration property definition for field %s=%s" % (key, field_config))
 
         if field_config is None:
             return
@@ -187,14 +187,14 @@ class Field:
     def to_json(self):
         return {
             'Path': self.path, 
-            'Type': self.type, 
-            'UpperLimit': self.upper_limit, 
-            'LowerLimit': self.lower_limit,
-            'Values': self.values,
-            'EqualsValue': self.equals_value,
-            'EarliestTime': self.earliest_time,
-            'LatestTime': self.latest_time,
-            'AllowEmpty': self.allow_empty}
+            'Type': self.type if hasattr(self, 'type') else None, 
+            'UpperLimit': self.upper_limit if hasattr(self, 'upper_limit') else None, 
+            'LowerLimit': self.lower_limit if hasattr(self, 'lower_limit') else None,
+            'Values': self.values if hasattr(self, 'values') else None,
+            'EqualsValue': self.equals_value if hasattr(self, 'equals_value') else None,
+            'EarliestTime': self.earliest_time.isoformat() if hasattr(self, 'earliest_time') else None,
+            'LatestTime': self.latest_time.isoformat() if hasattr(self, 'latest_time') else None,
+            'AllowEmpty': self.allow_empty if hasattr(self, 'allow_empty') else None}
 
 class TestCase:
     def __init__(self, filepath=None):
@@ -241,12 +241,9 @@ class TestCase:
         seq = Sequential()
         sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
 
-        sequential_validations = seq.perform_sequential_validations(sorted_list)
-        serialized = []
-        for x in sequential_validations:
-            serialized.append(FieldValidationResult(valid = x.valid, details = x.details, field_path = SEQUENTIAL_CHECK))
+        sequential_validation = seq.perform_sequential_validations(sorted_list)
 
-        results.append(RecordValidationResult(serial_id = None, field_validations = serialized, record = None))
+        results.extend(sequential_validation)
 
         return results
 
