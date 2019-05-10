@@ -5,7 +5,7 @@ import dateutil.parser
 from datetime import datetime, timezone, timedelta
 
 from odevalidator import Sequential, Field
-from testutils import assert_results
+from odevalidator_testutils import assert_results
 
 class SequentialUnitTest(unittest.TestCase):
 
