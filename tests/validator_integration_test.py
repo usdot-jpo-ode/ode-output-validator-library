@@ -1,7 +1,7 @@
 from odevalidator import TestCase, ValidatorException
 import unittest
 import queue
-from odevalidator_testutils import assert_results
+from tests import assert_results
 
 class ValidatorIntegrationTest(unittest.TestCase):
     
