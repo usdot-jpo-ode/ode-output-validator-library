@@ -15,4 +15,4 @@ class ValidatorUnitTest(unittest.TestCase):
             validator = TestCase(filepath="odevalidator/config.ini")
             self.assertTrue(len(validator.config.sections()) > 0)
         except ValidatorException as e:
-            self.fail("Unexpected exception: %s", str(e))
+            self.fail("Unexpected exception: %s" % str(e))

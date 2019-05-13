@@ -1,8 +1,10 @@
 from odevalidator import TestCase, ValidatorException
 import unittest
 import queue
+from tests import assert_results
 
-class ValidatorUnitTest(unittest.TestCase):
+class ValidatorIntegrationTest(unittest.TestCase):
+    
     def test_good_file_does_good_things(self):
         validator = TestCase()
 
@@ -14,18 +16,12 @@ class ValidatorUnitTest(unittest.TestCase):
         #msgs = [json.loads(line) for line in content]
         q = queue.Queue()
         for msg in content:
-            q.put(msg)
-        results = validator.validate_queue(q)
+            if msg and not msg.startswith('#'):
+                q.put(msg)
 
-        all_good = True
-        # print("========")
-        jsonprint = []
-        for res in results['Results']:
-            for val in res['Validations']:
-                if not val['Valid']:
-                    all_good = False
-                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        self.assertTrue(all_good)
+        results = validator.validate_queue(q)
+        assert_results(self, results, 0)
+        
         return
 
     def test_good_bsmTx_file_passes_sequential_checks(self):
@@ -39,18 +35,12 @@ class ValidatorUnitTest(unittest.TestCase):
         #msgs = [json.loads(line) for line in content]
         q = queue.Queue()
         for msg in content:
-            q.put(msg)
-        results = validator.validate_queue(q)
+            if msg and not msg.startswith('#'):
+                q.put(msg)
 
-        all_good = True
-        # print("========")
-        jsonprint = []
-        for res in results['Results']:
-            for val in res['Validations']:
-                if not val['Valid']:
-                    all_good = False
-                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        self.assertTrue(all_good)
+        results = validator.validate_queue(q)
+        assert_results(self, results, 0)
+
         return
 
     def test_bad_file_does_bad_things(self):
@@ -64,17 +54,10 @@ class ValidatorUnitTest(unittest.TestCase):
         #msgs = [json.loads(line) for line in content]
         q = queue.Queue()
         for msg in content:
-            q.put(msg)
-        results = validator.validate_queue(q)
+            if msg and not msg.startswith('#'):
+                q.put(msg)
 
-        all_good = True
-        # print("========")
-        jsonprint = []
-        for res in results['Results']:
-            for val in res['Validations']:
-                if not val['Valid']:
-                    # print("Field: %s, Details: %s" % (val['Field'], val['Details']))
-                    all_good = False
-                    jsonprint.append({"RecordID":res['RecordID'], "Validation":val, "Record": res['Record']})
-        self.assertFalse(all_good)
-        return False
+        results = validator.validate_queue(q)
+        assert_results(self, results, 29)
+
+        return

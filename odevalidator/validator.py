@@ -1,15 +1,15 @@
-import configparser
+from configparser import ConfigParser, ExtendedInterpolation
 import dateutil.parser
+from datetime import datetime, timezone, timedelta
 import json
 import logging
 import pkg_resources
 import queue
 from collections.abc import Iterable
-from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
-from .result import ValidationResult, ValidatorException
-from .sequential import Sequential
+from .result import FieldValidationResult, RecordValidationResult, ValidatorException
+from .sequential import Sequential, SEQUENTIAL_CHECK
 
 TYPE_DECIMAL = 'decimal'
 TYPE_ENUM = 'enum'
@@ -17,35 +17,39 @@ TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
 
 class Field:
-    def __init__(self, field):
+    def __init__(self, key, field_config = None):
         # extract required settings
-        self.path = field.get('Path')
-        if self.path is None:
-            raise ValidatorException("Missing required configuration property 'Path' for field '%s'" % field)
-        self.type = field.get('Type')
-        if self.type is None:
-            raise ValidatorException("Missing required configuration property 'Type' for field '%s'" % field)
+        self.path = key
+        if not self.path:
+            raise ValidatorException("Invalid configuration property definition for field %s=%s" % (key, field_config))
+
+        if field_config is None:
+            return
+
+        self.type = field_config.get('Type')
+        if not self.type:
+            raise ValidatorException("Missing required configuration property 'Type' for field %s=%s" % (key, field_config))
 
         # extract constraints
-        upper_limit = field.get('UpperLimit')
+        upper_limit = field_config.get('UpperLimit')
         if upper_limit is not None:
             self.upper_limit = Decimal(upper_limit)
-        lower_limit = field.get('LowerLimit')
+        lower_limit = field_config.get('LowerLimit')
         if lower_limit is not None:
             self.lower_limit = Decimal(lower_limit)
-        values = field.get('Values')
+        values = field_config.get('Values')
         if values is not None:
             self.values = json.loads(values)
-        equals_value = field.get('EqualsValue')
+        equals_value = field_config.get('EqualsValue')
         if equals_value is not None:
-            self.equals_value = str(equals_value)
-        earliest_time = field.get('EarliestTime')
+            self.equals_value = json.loads(str(equals_value))
+        earliest_time = field_config.get('EarliestTime')
         if earliest_time is not None:
             try:
                 self.earliest_time = dateutil.parser.parse(earliest_time)
             except Exception as e:
-                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s, error: %s" % (field, str(e)))
-        latest_time = field.get('LatestTime')
+                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
+        latest_time = field_config.get('LatestTime')
         if latest_time is not None:
             if latest_time == 'NOW':
                 self.latest_time = datetime.now(timezone.utc)
@@ -53,74 +57,148 @@ class Field:
                 try:
                     self.latest_time = dateutil.parser.parse(latest_time)
                 except Exception as e:
-                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s, error: %s" % (field, str(e)))
+                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
+
+        self.allow_empty = False
+        allow_empty = field_config.get('AllowEmpty')
+        if allow_empty is not None:
+            self.allow_empty = True if allow_empty == "True" else False
+            
 
     def validate(self, data):
         field_value = self._get_field_value(self.path, data)
 
         if hasattr(self, 'equals_value'):
-            result = self.check_value(field_value, data)
-            if len(result) > 0:
-                return result[0]
-        elif field_value is None:
-            return ValidationResult(False, "Field missing")
-        elif field_value == "":
-            return ValidationResult(False, "Field empty")
-        elif hasattr(self, 'values') and str(field_value) not in self.values:
-            return ValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(field_value), ', '.join(map(str, self.values))))
+            validation = self._check_value(field_value, data)
+        else:
+            validation = self._check_unconditional(field_value)
 
-        if hasattr(self, 'upper_limit') and Decimal(field_value) > self.upper_limit:
-            return ValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(field_value), self.upper_limit))
-        if hasattr(self, 'lower_limit') and Decimal(field_value) < self.lower_limit:
-            return ValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(field_value), self.lower_limit))
+        return validation if validation else FieldValidationResult(True, "", self.path)
 
-        if self.type == TYPE_TIMESTAMP:
-            try:
-                time_value = dateutil.parser.parse(field_value)
-                if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
-                    return ValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time))
-                if hasattr(self, 'latest_time') and time_value > self.latest_time:
-                    return ValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time))
-            except Exception as e:
-                return ValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)))
-        return ValidationResult(True, "")
+    def _check_value(self, data_field_value, data):
+        validation = None
 
-    def check_value(self, data_field_value, data):
-        validations = []
-        equals_value = json.loads(self.equals_value)
-
-        if isinstance(equals_value, Iterable):
-            if 'startsWithField' in equals_value:
-                sw_field_name = equals_value['startsWithField']
-                sw_field_value = self._get_field_value(sw_field_name, data)
-                if sw_field_value and not data_field_value.startswith(sw_field_value):
-                    validations.append(ValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value)))
-
-            if 'conditions' in equals_value:
-                conditions = equals_value['conditions']
+        if isinstance(self.equals_value, Iterable):
+            if 'conditions' in self.equals_value:
+                conditions = self.equals_value['conditions']
+                condition_met = False
                 for cond in conditions:
                     if_part = cond['ifPart']
                     refrenced_field_value = self._get_field_value(if_part['fieldName'], data)
-                    expected_field_values = if_part['fieldValues']
-                    if refrenced_field_value in expected_field_values:
-                        # condition is met, so now we can check the value
-                        then_part = cond['thenPart']
-                        if data_field_value not in then_part:
-                            validations.append(ValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part)))
-                        break # since the condition is met, we are done. We should not check other conditions
+                    expected_field_values = if_part['fieldValues'] if 'fieldValues' in if_part else None
+                    then_part = cond['thenPart'] if 'thenPart' in cond else None
 
-        return validations
+                    if self._is_condition_met(refrenced_field_value, expected_field_values, data_field_value):
+                        condition_met = True
+                        # condition is met, now if there is a non-'optional' then_part,
+                        # check the value against it. Otherwise, carry on without a validation error
+                        validation = self._process_then_part(then_part, data_field_value, data)
+
+                        break # since the condition is met, we are done. We should not check other conditions
+                
+                if not condition_met:
+                    validation = self._check_unconditional(data_field_value)
+            else:
+                validation = self._check_unconditional(data_field_value)
+
+
+        return validation
+
+    def _is_condition_met(self, refrenced_field_value, expected_field_values, data_field_value):
+        condition_met = False
+        if expected_field_values is None:
+            # a None for expected_field_values means that refrenced field ('fieldName') may or may not exist
+            # If it does not exist, condition is met. If id does exist, condition is not met and value must be checked.
+            if not data_field_value:
+                condition_met = True
+        else:
+            # expected_field_values exist so refrenced_field_value must be cheched to decide if condition is met
+            if refrenced_field_value in expected_field_values:
+                # a None for expected_field_values means that refrenced field ('fieldName') must merely exist
+                # condition is met, so now we can check the value
+                condition_met = True
+
+        return condition_met
+
+    def _process_then_part(self, then_part, data_field_value, data):
+        validation = None
+        if then_part:
+            # then_part is not blank, missing nor 'optional'
+            if not data_field_value:
+                # required field is missing
+                validation = FieldValidationResult(False, "Required Field is missing.", self.path)
+            else:
+                if 'startsWithField' in then_part:
+                    # data_field_value must starts with the value of the given data field
+                    sw_field_name = then_part['startsWithField']
+                    sw_field_value = self._get_field_value(sw_field_name, data)
+                    if sw_field_value and not data_field_value.startswith(sw_field_value):
+                        validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self.path)
+                elif 'matchAgainst' in then_part and isinstance(then_part['matchAgainst'], list):
+                    # then_part is expected to be an array of strings, one of which should match the data_field_value
+                    if data_field_value not in then_part['matchAgainst']:
+                        # the existing field value is not among the expected values
+                        validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
+        
+        return validation
 
     def _get_field_value(self, path_str, data):
         path_keys = path_str.split(".")
         value = data
         for key in path_keys:
-            value = value.get(key)
+            if key in value:
+                value = value.get(key)
+            else:
+                value = None
+                break
         return value
+
+    def _check_unconditional(self, data_field_value):
+        if data_field_value is None:
+            return FieldValidationResult(False, "Field missing", self.path)
+        else:
+            if data_field_value == "":
+                if self.allow_empty:
+                    return None
+                else:
+                    return FieldValidationResult(False, "Field empty", self.path)
+            else:
+                if self.type == TYPE_ENUM and str(data_field_value) not in self.values:
+                    return FieldValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(data_field_value), ', '.join(map(str, self.values))), self.path)
+                elif self.type == TYPE_DECIMAL:
+                    if hasattr(self, 'upper_limit') and Decimal(data_field_value) > self.upper_limit:
+                        return FieldValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(data_field_value), self.upper_limit), self.path)
+                    if hasattr(self, 'lower_limit') and Decimal(data_field_value) < self.lower_limit:
+                        return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(data_field_value), self.lower_limit), self.path)
+                elif self.type == TYPE_TIMESTAMP:
+                    try:
+                        time_value = dateutil.parser.parse(data_field_value)
+                        if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self.path)
+
+                        if hasattr(self, 'latest_time') and time_value > (self.latest_time + timedelta(minutes=1)):
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self.path)
+                    except Exception as e:
+                        return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self.path)
+
+    def __str__(self):
+        return json.dumps(self.to_json())
+
+    def to_json(self):
+        return {
+            'Path': self.path, 
+            'Type': self.type if hasattr(self, 'type') else None, 
+            'UpperLimit': self.upper_limit if hasattr(self, 'upper_limit') else None, 
+            'LowerLimit': self.lower_limit if hasattr(self, 'lower_limit') else None,
+            'Values': self.values if hasattr(self, 'values') else None,
+            'EqualsValue': self.equals_value if hasattr(self, 'equals_value') else None,
+            'EarliestTime': self.earliest_time.isoformat() if hasattr(self, 'earliest_time') else None,
+            'LatestTime': self.latest_time.isoformat() if hasattr(self, 'latest_time') else None,
+            'AllowEmpty': self.allow_empty if hasattr(self, 'allow_empty') else None}
 
 class TestCase:
     def __init__(self, filepath=None):
-        self.config = configparser.ConfigParser()
+        self.config = ConfigParser(interpolation=ExtendedInterpolation())
         if filepath is None:
             default_config = pkg_resources.resource_string(__name__, "config.ini")
             self.config.read_string(str(default_config, 'utf-8'))
@@ -131,17 +209,13 @@ class TestCase:
 
         self.field_list = []
         for key in self.config.sections():
-            self.field_list.append(Field(self.config[key]))
+            self.field_list.append(Field(key, self.config[key]))
 
     def _validate(self, data):
         validations = []
         for field in self.field_list:
             result = field.validate(data)
-            validations.append({
-                'Field': field.path,
-                'Valid': result.valid,
-                'Details': result.error
-            })
+            validations.append(result)
         return validations
 
     def validate_queue(self, msg_queue):
@@ -150,40 +224,26 @@ class TestCase:
         skip_sequential_checks = False
         while not msg_queue.empty():
             line = msg_queue.get()
-            if line and not line.startswith('#'):
-                current_msg = json.loads(line)
-                msg_list.append(current_msg)
-                record_id = str(current_msg['metadata']['serialId']['recordId'])
-                sanitized = current_msg['metadata']['sanitized']
+            current_msg = json.loads(line)
+            msg_list.append(current_msg)
+            serial_id = str(current_msg['metadata']['serialId'])
+            sanitized = current_msg['metadata']['sanitized']
+            if 'recordType' in current_msg['metadata']:
                 record_type = current_msg['metadata']['recordType']
                 if sanitized or record_type == 'rxMsg':
                     skip_sequential_checks = True
-                field_validations = self._validate(current_msg)
-                results.append({
-                    'RecordID': record_id,
-                    'Validations': field_validations,
-                    'Record': current_msg
-                })
+            field_validations = self._validate(current_msg)
+            results.append(RecordValidationResult(serial_id, field_validations, current_msg))
 
         if skip_sequential_checks:
-            return {'Results': results}
+            return results
 
         seq = Sequential()
-        sorted_list = sorted(msg_list, key=lambda msg: (msg['metadata']['logFileName'], msg['metadata']['serialId']['recordId']))
+        sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
 
-        sequential_validations = seq.perform_sequential_validations(sorted_list)
-        serialized = []
-        for x in sequential_validations:
-            serialized.append({
-                'Field': "SequentialCheck",
-                'Valid': x.valid,
-                'Details': x.error
-            })
+        sequential_validation = seq.perform_sequential_validations(sorted_list)
 
-        results.append({
-                    'RecordID': -1,
-                    'Validations': serialized,
-                    'Record': "NA"
-                })
+        results.extend(sequential_validation)
 
-        return {'Results': results}
+        return results
+
