@@ -17,7 +17,7 @@ TYPE_TIMESTAMP = 'timestamp'
 TYPE_STRING = 'string'
 
 class Field:
-    def __init__(self, key, field_config = None):
+    def __init__(self, key, field_config = None, test_case = None):
         # extract required settings
         self.path = key
         if not self.path:
@@ -25,6 +25,8 @@ class Field:
 
         if field_config is None:
             return
+
+        self.test_case = test_case
 
         self.type = field_config.get('Type')
         if not self.type:
@@ -63,7 +65,7 @@ class Field:
         allow_empty = field_config.get('AllowEmpty')
         if allow_empty is not None:
             self.allow_empty = True if allow_empty == "True" else False
-            
+
 
     def validate(self, data):
         field_value = self._get_field_value(self.path, data)
@@ -81,7 +83,7 @@ class Field:
         if isinstance(self.equals_value, Iterable):
             if 'conditions' in self.equals_value:
                 conditions = self.equals_value['conditions']
-                condition_met = False
+                field_validation_condition_met = False
                 for cond in conditions:
                     if_part = cond['ifPart']
                     refrenced_field_value = self._get_field_value(if_part['fieldName'], data)
@@ -89,14 +91,17 @@ class Field:
                     then_part = cond['thenPart'] if 'thenPart' in cond else None
 
                     if self._is_condition_met(refrenced_field_value, expected_field_values, data_field_value):
-                        condition_met = True
                         # condition is met, now if there is a non-'optional' then_part,
                         # check the value against it. Otherwise, carry on without a validation error
                         validation = self._process_then_part(then_part, data_field_value, data)
 
-                        break # since the condition is met, we are done. We should not check other conditions
+                        if validation and validation.field_path != SEQUENTIAL_CHECK:
+                            # This means that this is NOT a skipSequentialValidation condition and 
+                            # therefore a field validation condition is met. If it is skipSequentialValidation
+                            # we don't consider it a condition for field calidation.
+                            field_validation_condition_met = True
                 
-                if not condition_met:
+                if not field_validation_condition_met:
                     validation = self._check_unconditional(data_field_value)
             else:
                 validation = self._check_unconditional(data_field_value)
@@ -124,7 +129,7 @@ class Field:
         validation = None
         if then_part:
             # then_part is not blank, missing nor 'optional'
-            if not data_field_value:
+            if data_field_value == None:
                 # required field is missing
                 validation = FieldValidationResult(False, "Required Field is missing.", self.path)
             else:
@@ -139,6 +144,9 @@ class Field:
                     if data_field_value not in then_part['matchAgainst']:
                         # the existing field value is not among the expected values
                         validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
+                elif self.test_case and 'skipSequentialValidation' in then_part and then_part['skipSequentialValidation']:
+                    self.test_case.skip_sequential_checks.add(self.path)
+                    validation = FieldValidationResult(field_path = SEQUENTIAL_CHECK)
         
         return validation
 
@@ -208,8 +216,9 @@ class TestCase:
             self.config.read(filepath)
 
         self.field_list = []
+        self.skip_sequential_checks = set()
         for key in self.config.sections():
-            self.field_list.append(Field(key, self.config[key]))
+            self.field_list.append(Field(key, self.config[key], self))
 
     def _validate(self, data):
         validations = []
@@ -221,24 +230,15 @@ class TestCase:
     def validate_queue(self, msg_queue):
         results = []
         msg_list = []
-        skip_sequential_checks = False
         while not msg_queue.empty():
             line = msg_queue.get()
             current_msg = json.loads(line)
             msg_list.append(current_msg)
             serial_id = str(current_msg['metadata']['serialId'])
-            sanitized = current_msg['metadata']['sanitized']
-            if 'recordType' in current_msg['metadata']:
-                record_type = current_msg['metadata']['recordType']
-                if sanitized or record_type == 'rxMsg':
-                    skip_sequential_checks = True
             field_validations = self._validate(current_msg)
             results.append(RecordValidationResult(serial_id, field_validations, current_msg))
 
-        if skip_sequential_checks:
-            return results
-
-        seq = Sequential()
+        seq = Sequential(self.skip_sequential_checks)
         sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
 
         sequential_validation = seq.perform_sequential_validations(sorted_list)

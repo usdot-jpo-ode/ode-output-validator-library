@@ -6,7 +6,8 @@ from .result import FieldValidationResult, RecordValidationResult
 SEQUENTIAL_CHECK = "SequentialCheck"
 
 class Sequential:
-    def __init__(self):
+    def __init__(self, skip_validations=[]):
+        self.skip_validations = skip_validations
         return
 
     ### Iterate messages and check that sequential items are sequential
@@ -38,13 +39,13 @@ class Sequential:
             new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt'])
             new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
 
-            if record['metadata']['serialId']['bundleSize'] > 1 and new_record_id != old_record_id+1:
+            if 'metadata.serialId.bundleSize' not in self.skip_validations and record['metadata']['serialId']['bundleSize'] > 1 and new_record_id != old_record_id+1:
                 validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented recordId. Expected recordId '%d' but got '%d'" % (old_record_id+1, new_record_id), record['metadata']['serialId']))
-            if new_serial_number != old_serial_number+1:
+            if 'metadata.serialId.serialNumber' not in self.skip_validations and new_serial_number != old_serial_number+1:
                 validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented serialNumber. Expected serialNumber '%d' but got '%d'" % (old_serial_number+1, new_serial_number), record['metadata']['serialId']))
-            if new_record_generated_at < old_record_generated_at:
+            if 'metadata.recordGeneratedAt' not in self.skip_validations and new_record_generated_at < old_record_generated_at:
                 validation_results.append(FieldValidationResult(False, "Detected non-chronological recordGeneratedAt. Previous timestamp was '%s' but current timestamp is '%s'" % (old_record_generated_at, new_record_generated_at), record['metadata']['serialId']))
-            if new_ode_received_at < old_ode_received_at:
+            if 'metadata.odeReceivedAt' not in self.skip_validations and new_ode_received_at < old_ode_received_at:
                 validation_results.append(FieldValidationResult(False, "Detected non-chronological odeReceivedAt. Previous timestamp was '%s' but current timestamp is '%s'" % (old_ode_received_at, new_ode_received_at), record['metadata']['serialId']))
 
             old_record_id = new_record_id
@@ -52,7 +53,8 @@ class Sequential:
             old_record_generated_at = new_record_generated_at
             old_ode_received_at = new_ode_received_at
 
-        validation_results.extend(self.validate_bundle_size(sorted_bundle))
+        if 'metadata.serialId.bundleSize' not in self.skip_validations:
+            validation_results.extend(self.validate_bundle_size(sorted_bundle))
 
         return validation_results
 
