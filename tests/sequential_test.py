@@ -44,6 +44,7 @@ class SequentialUnitTest(unittest.TestCase):
 
         #setting up for recordId 3-8 (tail end of a bundle of 9 records)
         json_seed['metadata']['logFileName'] = 'rxMsg_partial_1'
+        json_seed['metadata']['serialId']['bundleId'] = 101
         cur_record = json_seed
         cur_record['metadata']['serialId']['recordId'] = 2
         n = 5
@@ -54,6 +55,7 @@ class SequentialUnitTest(unittest.TestCase):
 
         #setting up for recordId 0-9 (full bundle of 9 records)
         json_seed['metadata']['logFileName'] = 'rxMsg_Full'
+        json_seed['metadata']['serialId']['bundleId'] = 102
         cur_record = json_seed
         cur_record['metadata']['serialId']['recordId'] = -1
         n = 8
@@ -64,6 +66,7 @@ class SequentialUnitTest(unittest.TestCase):
 
         #setting up for recordId 0-6 (front end of a bundle of 9 records)
         json_seed['metadata']['logFileName'] = 'rxMsg_partial_2'
+        json_seed['metadata']['serialId']['bundleId'] = 103
         cur_record = json_seed
         cur_record['metadata']['serialId']['recordId'] = -1
         n = 5
