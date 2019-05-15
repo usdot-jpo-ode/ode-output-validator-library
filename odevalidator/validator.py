@@ -91,14 +91,17 @@ class Field:
                     then_part = cond['thenPart'] if 'thenPart' in cond else None
 
                     if self._is_condition_met(refrenced_field_value, expected_field_values, data_field_value):
-                        # condition is met, now if there is a non-'optional' then_part,
-                        # check the value against it. Otherwise, carry on without a validation error
-                        validation = self._process_then_part(then_part, data_field_value, data)
+                        if self.test_case and then_part and 'skipSequentialValidation' in then_part and then_part['skipSequentialValidation']:
+                            # For skipSequentialValidation, we don't need to do any field validation. We just save this field path for sequential check to use.
+                            self.test_case.skip_sequential_checks.add(self.path)
+                        elif not field_validation_condition_met:
+                            # It's a field validation condition is met, now if there is a non-'optional' then_part,
+                            # check the value against it. Otherwise, carry on without a validation error
+                            validation = self._check_conditional(then_part, data_field_value, data)
 
-                        if validation and validation.field_path != SEQUENTIAL_CHECK:
-                            # This means that this is NOT a skipSequentialValidation condition and 
+                            # This is NOT a skipSequentialValidation condition and 
                             # therefore a field validation condition is met. If it is skipSequentialValidation
-                            # we don't consider it a condition for field calidation.
+                            # we don't consider it a condition for field validation. Also, 
                             field_validation_condition_met = True
                 
                 if not field_validation_condition_met:
@@ -125,28 +128,24 @@ class Field:
 
         return condition_met
 
-    def _process_then_part(self, then_part, data_field_value, data):
+    def _check_conditional(self, then_part, data_field_value, data):
         validation = None
         if then_part:
             # then_part is not blank, missing nor 'optional'
             if data_field_value == None:
                 # required field is missing
                 validation = FieldValidationResult(False, "Required Field is missing.", self.path)
-            else:
-                if 'startsWithField' in then_part:
-                    # data_field_value must starts with the value of the given data field
-                    sw_field_name = then_part['startsWithField']
-                    sw_field_value = self._get_field_value(sw_field_name, data)
-                    if sw_field_value and not data_field_value.startswith(sw_field_value):
-                        validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self.path)
-                elif 'matchAgainst' in then_part and isinstance(then_part['matchAgainst'], list):
-                    # then_part is expected to be an array of strings, one of which should match the data_field_value
-                    if data_field_value not in then_part['matchAgainst']:
-                        # the existing field value is not among the expected values
-                        validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
-                elif self.test_case and 'skipSequentialValidation' in then_part and then_part['skipSequentialValidation']:
-                    self.test_case.skip_sequential_checks.add(self.path)
-                    validation = FieldValidationResult(field_path = SEQUENTIAL_CHECK)
+            elif 'startsWithField' in then_part:
+                # data_field_value must starts with the value of the given data field
+                sw_field_name = then_part['startsWithField']
+                sw_field_value = self._get_field_value(sw_field_name, data)
+                if sw_field_value and not data_field_value.startswith(sw_field_value):
+                    validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self.path)
+            elif 'matchAgainst' in then_part and isinstance(then_part['matchAgainst'], list):
+                # then_part is expected to be an array of strings, one of which should match the data_field_value
+                if data_field_value not in then_part['matchAgainst']:
+                    # the existing field value is not among the expected values
+                    validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
         
         return validation
 

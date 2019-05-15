@@ -89,22 +89,22 @@ class Sequential:
     ### Iterate messages and check that sequential items are sequential
     def collect_bundles(self, sorted_record_list):
         first_record = sorted_record_list[0]
-        old_log_file_name = first_record['metadata']['logFileName'] if 'logFileName' in first_record['metadata'] else "NA"
+        old_bundle_id = first_record['metadata']['serialId']['bundleId']
 
         bundles = []
         bundle = []
         bundle.append(first_record)
         for record in sorted_record_list[1:]:
-            new_log_file_name = record['metadata']['logFileName'] if 'logFileName' in record['metadata'] else "NA"
+            new_bundle_id = record['metadata']['serialId']['bundleId']
 
-            if old_log_file_name == new_log_file_name:
+            if old_bundle_id == new_bundle_id:
                 bundle.append(record)
             else:
                 bundles.append(bundle)
                 bundle = []
                 bundle.append(record)
 
-            old_log_file_name = new_log_file_name
+            old_bundle_id = new_bundle_id
 
         if len(bundle) > 0:
             bundles.append(bundle)
