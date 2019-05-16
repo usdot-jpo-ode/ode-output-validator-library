@@ -16,7 +16,7 @@ class SequentialUnitTest(unittest.TestCase):
         self.json_seed = json.loads(seed_record)
         self.record_list = self.build_happy_path(self.json_seed)
 
-    def tes_happy_path(self):
+    def test_happy_path(self):
         print("Testing Happy Path ...")
         record_list = self.build_happy_path(self.json_seed)
         results = self.seq.perform_sequential_validations(record_list)
@@ -28,19 +28,21 @@ class SequentialUnitTest(unittest.TestCase):
         self.record_list.remove(self.record_list[8])
         self.record_list.remove(self.record_list[2])
         results = self.seq.perform_sequential_validations(self.record_list)
-        assert_results(self, results, 9)
+        assert_results(self, results, 7)
 
     def test_invalid_bundle_size(self):
         print("Testing invalid bundleSize ...")
-        self.record_list.remove(self.record_list[14])
-        self.record_list.remove(self.record_list[5])
+        self.record_list.remove(self.record_list[15])
+        self.record_list.remove(self.record_list[6])
         results = self.seq.perform_sequential_validations(self.record_list)
+        # Even though we have removed the last record of a full bundle, the validator can't detect if this is a head of a full list or a full list. 
+        # Therefore, we should get only one validation error
         assert_results(self, results, 1)
 
-    def runTest(self):
+    def test_dup_and_chronological(self):
         print("Testing Duplicate recordId and serialNumber and non-chronological odeReceivedAt and recordGeneratedAt ...")
-        self.record_list[19] = copy.deepcopy(self.record_list[17])
-        self.record_list[8] = copy.deepcopy(self.record_list[6])
+        self.record_list[18] = copy.deepcopy(self.record_list[16])
+        self.record_list[9] = copy.deepcopy(self.record_list[7])
         self.record_list[2] = copy.deepcopy(self.record_list[0])
         results = self.seq.perform_sequential_validations(self.record_list)
         assert_results(self, results, 18)
@@ -52,40 +54,43 @@ class SequentialUnitTest(unittest.TestCase):
         #setting up for recordId 3-8 (tail end of a bundle of 9 records)
         self.json_seed['metadata']['logFileName'] = 'rxMsg_tail'
         self.json_seed['metadata']['serialId']['bundleId'] = 101
-        self.json_seed['metadata']['serialId']['serialNumber'] = 1000
+        self.json_seed['metadata']['serialId']['serialNumber'] = 1001
 
         self.json_seed['metadata']['serialId']['recordId'] = 2
         cur_record = self.json_seed
-        n = 5
-        while n >= 0:
-            cur_record = self._next_record(cur_record)
-            record_list.append(cur_record)
-            n -= 1
+        bundle = self._build_bundle(cur_record, 7)
+        record_list.extend(bundle)
 
         #setting up for recordId 0-9 (full bundle of 9 records)
+        cur_record = self._next_record(record_list[-1])
         cur_record['metadata']['logFileName'] = 'rxMsg_Full'
         cur_record['metadata']['serialId']['bundleId'] = 102
-        cur_record['metadata']['serialId']['recordId'] = -1
-        n = 8
-        while n >= 0:
-            cur_record = self._next_record(cur_record)
-            record_list.append(cur_record)
-            n -= 1
+        cur_record['metadata']['serialId']['recordId'] = 0
+        bundle = self._build_bundle(cur_record, 9)
+        record_list.extend(bundle)
 
         #setting up for recordId 0-6 (front end of a bundle of 9 records)
+        cur_record = self._next_record(record_list[-1])
         cur_record['metadata']['logFileName'] = 'rxMsg_head'
         cur_record['metadata']['serialId']['bundleId'] = 103
-        cur_record['metadata']['serialId']['recordId'] = -1
-        n = 5
-        while n >= 0:
-            cur_record = self._next_record(cur_record)
-            record_list.append(cur_record)
-            n -= 1
+        cur_record['metadata']['serialId']['recordId'] = 0
+        bundle = self._build_bundle(cur_record, 7)
+        record_list.extend(bundle)
 
         #for record in record_list:
         #    print(json.dumps(record))
 
         return record_list
+
+    def _build_bundle(self, seed_record, count):
+        bundle = []
+        cur_record = copy.deepcopy(seed_record)
+        while count > 0:
+            bundle.append(cur_record)
+            cur_record = self._next_record(cur_record)
+            count -= 1
+        
+        return bundle
 
     def _next_record(self, cur_record):
         next_record = copy.deepcopy(cur_record)
