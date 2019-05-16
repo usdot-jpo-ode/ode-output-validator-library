@@ -61,28 +61,27 @@ class Sequential:
     def validate_bundle_size(self, sorted_bundle):
         first_record_id = int(sorted_bundle[0]['metadata']['serialId']['recordId'])
         last_record_id = int(sorted_bundle[-1]['metadata']['serialId']['recordId'])
-        bundle_size = int(sorted_bundle[0]['metadata']['serialId']['bundleSize'])
+        cur_bundle_size = int(sorted_bundle[0]['metadata']['serialId']['bundleSize'])
+        prev_bundle_size = None
 
         validation_results = []
         # partial or full list?
         if first_record_id == 0:
             # head of a partial list?
-            if last_record_id == bundle_size - 1:
+            if last_record_id == cur_bundle_size - 1:
                 # full list
                 for record in sorted_bundle:
-                    bundle_size = int(record['metadata']['serialId']['bundleSize'])
-                    if 'logFileName' in record['metadata'] and len(sorted_bundle) != bundle_size:
-                        validation_results.append(FieldValidationResult(False, "bundleSize doesn't match number of records. Number of records: '%d' != bundlSize: '%d'" % (len(sorted_bundle), bundle_size), serial_id = sorted_bundle[-1]['metadata']['serialId']))
-
-                bundle_size = int(sorted_bundle[0]['metadata']['serialId']['bundleSize'])
-                if last_record_id != bundle_size-1:
-                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match the last recordId of a full set. Last recordId: '%d' != (bundlSize-1: '%d'" % (last_record_id, bundle_size-1), serial_id = sorted_bundle[-1]['metadata']['serialId']))
+                    cur_bundle_size = int(record['metadata']['serialId']['bundleSize'])
+                    if prev_bundle_size != cur_bundle_size and 'logFileName' in record['metadata'] and len(sorted_bundle) != cur_bundle_size:
+                        prev_bundle_size = cur_bundle_size
+                        validation_results.append(FieldValidationResult(False, "bundleSize doesn't match number of records. Number of records: '%d' != bundlSize: '%d'" % (len(sorted_bundle), cur_bundle_size), serial_id = sorted_bundle[-1]['metadata']['serialId']))
         else:
             # tail of a partial list
             for record in sorted_bundle:
-                bundle_size = int(record['metadata']['serialId']['bundleSize'])
-                if last_record_id != bundle_size-1:
-                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match last recordId of a tail set. Last recordId: '%d' != bundleSize: '%d'" % (last_record_id, bundle_size), serial_id = sorted_bundle[-1]['metadata']['serialId']))
+                cur_bundle_size = int(record['metadata']['serialId']['bundleSize'])
+                if prev_bundle_size != cur_bundle_size and last_record_id != cur_bundle_size-1:
+                    prev_bundle_size = cur_bundle_size
+                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match last recordId. Last recordId: '%d' != (bundleSize-1: '%d')" % (last_record_id, cur_bundle_size-1), serial_id = sorted_bundle[-1]['metadata']['serialId']))
 
         return validation_results
 
