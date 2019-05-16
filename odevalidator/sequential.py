@@ -39,14 +39,14 @@ class Sequential:
             new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt'])
             new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
 
-            if 'metadata.serialId.bundleSize' not in self.skip_validations and record['metadata']['serialId']['bundleSize'] > 1 and new_record_id != old_record_id+1:
-                validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented recordId. Expected recordId '%d' but got '%d'" % (old_record_id+1, new_record_id), record['metadata']['serialId']))
+            if 'metadata.serialId.recordId' not in self.skip_validations and record['metadata']['serialId']['bundleSize'] > 1 and new_record_id != old_record_id+1:
+                validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented recordId. Expected recordId '%d' but got '%d'" % (old_record_id+1, new_record_id), serial_id = record['metadata']['serialId']))
             if 'metadata.serialId.serialNumber' not in self.skip_validations and new_serial_number != old_serial_number+1:
-                validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented serialNumber. Expected serialNumber '%d' but got '%d'" % (old_serial_number+1, new_serial_number), record['metadata']['serialId']))
+                validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented serialNumber. Expected serialNumber '%d' but got '%d'" % (old_serial_number+1, new_serial_number), serial_id = record['metadata']['serialId']))
             if 'metadata.recordGeneratedAt' not in self.skip_validations and new_record_generated_at < old_record_generated_at:
-                validation_results.append(FieldValidationResult(False, "Detected non-chronological recordGeneratedAt. Previous timestamp was '%s' but current timestamp is '%s'" % (old_record_generated_at, new_record_generated_at), record['metadata']['serialId']))
+                validation_results.append(FieldValidationResult(False, "Detected non-chronological recordGeneratedAt. Previous timestamp was '%s' but current timestamp is '%s'" % (old_record_generated_at, new_record_generated_at), serial_id = record['metadata']['serialId']))
             if 'metadata.odeReceivedAt' not in self.skip_validations and new_ode_received_at < old_ode_received_at:
-                validation_results.append(FieldValidationResult(False, "Detected non-chronological odeReceivedAt. Previous timestamp was '%s' but current timestamp is '%s'" % (old_ode_received_at, new_ode_received_at), record['metadata']['serialId']))
+                validation_results.append(FieldValidationResult(False, "Detected non-chronological odeReceivedAt. Previous timestamp was '%s' but current timestamp is '%s'" % (old_ode_received_at, new_ode_received_at), serial_id = record['metadata']['serialId']))
 
             old_record_id = new_record_id
             old_serial_number = new_serial_number
@@ -72,17 +72,17 @@ class Sequential:
                 for record in sorted_bundle:
                     bundle_size = int(record['metadata']['serialId']['bundleSize'])
                     if 'logFileName' in record['metadata'] and len(sorted_bundle) != bundle_size:
-                        validation_results.append(FieldValidationResult(False, "bundleSize doesn't match number of records. recordId: '%d' record length: '%d' != bundlSize: '%d'" % (record['metadata']['serialId']['recordId'], len(sorted_bundle), bundle_size), record['metadata']['serialId']))
+                        validation_results.append(FieldValidationResult(False, "bundleSize doesn't match number of records. Number of records: '%d' != bundlSize: '%d'" % (len(sorted_bundle), bundle_size), serial_id = sorted_bundle[-1]['metadata']['serialId']))
 
                 bundle_size = int(sorted_bundle[0]['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size-1:
-                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match the last recordId of a full set. recordId: '%d' Last recordId: '%d' != bundlSize: '%d'" % (record['metadata']['serialId']['recordId'], last_record_id, bundle_size), record['metadata']['serialId']))
+                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match the last recordId of a full set. Last recordId: '%d' != (bundlSize-1: '%d'" % (last_record_id, bundle_size-1), serial_id = sorted_bundle[-1]['metadata']['serialId']))
         else:
             # tail of a partial list
             for record in sorted_bundle:
                 bundle_size = int(record['metadata']['serialId']['bundleSize'])
                 if last_record_id != bundle_size-1:
-                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match last recordId of a tail set. recordId: '%d' last recordId: '%d' != bundleSize: '%d'" % (record['metadata']['serialId']['recordId'], last_record_id, bundle_size), record['metadata']['serialId']))
+                    validation_results.append(FieldValidationResult(False, "bundleSize doesn't match last recordId of a tail set. Last recordId: '%d' != bundleSize: '%d'" % (last_record_id, bundle_size), serial_id = sorted_bundle[-1]['metadata']['serialId']))
 
         return validation_results
 

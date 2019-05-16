@@ -15,8 +15,13 @@ class ValidatorIntegrationTest(unittest.TestCase):
         results = self._validate_file(data_file)
         assert_results(self, results, 0)
 
-    def test_braodcast_tim_file(self):
+    def test_good_braodcast_tim(self):
         data_file = 'tests/testfiles/good_broadcast_tim.json'
+        results = self._validate_file(data_file)
+        assert_results(self, results, 0)
+
+    def test_good_rxMsg_BSMonly(self):
+        data_file = 'tests/testfiles/good_rxMsg_BSMonly.json'
         results = self._validate_file(data_file)
         assert_results(self, results, 0)
 

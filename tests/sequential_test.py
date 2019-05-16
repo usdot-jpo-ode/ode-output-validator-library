@@ -21,7 +21,7 @@ class SequentialUnitTest(unittest.TestCase):
         results = seq.perform_sequential_validations(record_list)
         assert_results(self, results, 0)
 
-        print("Testing Missing recordId, serialNumber and bundleSize ...")
+        print("Testing Missing recordId, serialNumber ...")
         record_list_missing = []
         record_list_missing = copy.deepcopy(record_list)
         record_list_missing.remove(record_list_missing[19])
@@ -29,6 +29,14 @@ class SequentialUnitTest(unittest.TestCase):
         record_list_missing.remove(record_list_missing[2])
         results = seq.perform_sequential_validations(record_list_missing)
         assert_results(self, results, 14)
+
+        print("Testing invalid bundleSize ...")
+        record_list_invalid_bundleSize = []
+        record_list_invalid_bundleSize = copy.deepcopy(record_list)
+        record_list_invalid_bundleSize.remove(record_list_missing[14])
+        record_list_invalid_bundleSize.remove(record_list_missing[5])
+        results = seq.perform_sequential_validations(record_list_invalid_bundleSize)
+        assert_results(self, results, 2)
 
         print("Testing Duplicate recordId and serialNumber and non-chronological odeReceivedAt and recordGeneratedAt ...")
         record_list_dup = copy.deepcopy(record_list)
