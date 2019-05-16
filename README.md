@@ -370,6 +370,11 @@ definitions:
         type: array
         items:
           type: string
+          
+      skipSequentialValidation:
+        description: This boolean property specifies if this sequential or chronological field should take part in sequential validation or not.
+          set the value of this property to True if you would like to skip sequential validation of this field.
+        type: boolean
 ```
 
 The following conditional field validation states that the value of `metadata.payloadType` must be equal `us.dot.its.jpo.ode.model.OdeBsmPayload` if
@@ -487,6 +492,30 @@ EqualsValue = {"startsWithField": "metadata.recordType"}
   - Special value: Use `NOW` to validate that the timestamp is not in the future: `LatestTime = NOW`
   - Value: ISO timestamp: `LatestTime = 2018-12-03T00:00:00.000Z`
   - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
+
+The following field validation specifies that sequential validation should NOT be enacted on `metadata.recordGeneratedAt` when the record is generated 
+by TMC (`"metadata.recordGeneratedBy":"TMC"`).
+
+```
+[metadata.recordGeneratedAt]
+Type = timestamp
+LatestTime = NOW
+EqualsValue = {"conditions":[{"ifPart":{"fieldName":"metadata.recordGeneratedBy","fieldValues":["TMC"]},"thenPart":{"skipSequentialValidation":"true"}}]}
+```
+
+The following field validation specifies that sequential validation should NOT be enacted on `metadata.serialId.recordId` when the records is from
+and `rxMsg` OR the records is _santiized_ (`"metadata.sanitized": "True"`.
+fields when 
+
+```
+[metadata.serialId.recordId]
+Type = decimal
+UpperLimit = 2147483647
+LowerLimit = 0
+EqualsValue = {"conditions":[
+    {"ifPart":{"fieldName":"metadata.recordType","fieldValues":["rxMsg"]},"thenPart":{"skipSequentialValidation":"true"}},
+    {"ifPart":{"fieldName":"metadata.sanitized","fieldValues":["True"]},"thenPart":{"skipSequentialValidation":"true"}}]}
+```
 
 **Files**
 - [Default Configuration File](odevalidator/config.ini)
