@@ -25,13 +25,25 @@ class ValidatorIntegrationTest(unittest.TestCase):
         results = self._validate_file(data_file)
         assert_results(self, results, 0)
 
+    def test_csv_file(self):
+        data_file = 'tests/testfiles/good_vsl.csv'
+        config_file = 'odevalidator/csvconfig.ini'
+        results = self._validate_file(data_file, config_file)
+        assert_results(self, results, 0)
+    
+    def test_bad_csv_file(self):
+        data_file = 'tests/testfiles/bad_vsl.csv'
+        config_file = 'odevalidator/csvconfig.ini'
+        results = self._validate_file(data_file, config_file)
+        assert_results(self, results, 6)
+    
     def test_bad_file_does_bad_things(self):
         data_file = 'tests/testfiles/bad.json'
         results = self._validate_file(data_file)
         assert_results(self, results, 29)
 
-    def _validate_file(self, data_file):
-        validator = TestCase()
+    def _validate_file(self, data_file, config_file = None):
+        validator = TestCase(config_file)
 
         with open(data_file) as f:
             content = f.readlines()
