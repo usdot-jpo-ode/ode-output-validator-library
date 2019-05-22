@@ -206,7 +206,7 @@ class Field:
 class TestCase:
     def __init__(self, filepath=None):
         self.config = ConfigParser(interpolation=ExtendedInterpolation())
-        self.parse_record = {"json": json.loads, "csv": self.parse_csv}
+        self.record_parser = {"json": json.loads, "csv": self.parse_csv}
         if filepath is None:
             default_config = pkg_resources.resource_string(__name__, "config.ini")
             self.config.read_string(str(default_config, 'utf-8'))
@@ -250,19 +250,26 @@ class TestCase:
 
         while not msg_queue.empty():
             line = msg_queue.get()
-            current_msg = self.parse_record[self.data_type](line)
+            current_msg = self.record_parser[self.data_type](line)
             msg_list.append(current_msg)
-            record_id = msg_count
+
+            # if json data log, serial_id is set to data log's serial_id
+            # otherwise, serial_id is set to the log number due to potential lack of actual serial_id
+            serial_id = msg_count
             msg_count += 1
+            if self.data_type == "json":
+                serial_id = str(current_msg['metadata']['serialId'])
+
             field_validations = self._validate(current_msg)
-            results.append(RecordValidationResult(record_id, field_validations, current_msg))
+            results.append(RecordValidationResult(serial_id, field_validations, current_msg))
 
-        #seq = Sequential(self.skip_sequential_checks)
-        #sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
+        if self.SequentialValidation:
+            seq = Sequential(self.skip_sequential_checks)
+            sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
 
-        #sequential_validation = seq.perform_sequential_validations(sorted_list)
+            sequential_validation = seq.perform_sequential_validations(sorted_list)
 
-        #results.extend(sequential_validation)
+            results.extend(sequential_validation)
 
         return results
 
@@ -281,8 +288,8 @@ class TestCase:
         csv_fields = headers.split(",")
         index = 0
 
+        logger = logging.getLogger("header-logger")
         for field in self.field_list:
             if not str.lower(field.path) == str.lower(csv_fields[index]):
-                #print('headers do  not match')
-                pass
+                logger.warning("Warning: The data file CSV header '" + str.lower(csv_fields[index]) + "' does not match the config file field '" + str.lower(field.path) + "'");
             index += 1

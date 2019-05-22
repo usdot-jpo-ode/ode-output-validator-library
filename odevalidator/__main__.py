@@ -32,6 +32,8 @@ if __name__ == '__main__':
     success = True
     for result in results:
         for field in result.field_validations:
+            if field.valid == False:
+                print("Invalid field '" + field.field_path + "' due to " + field.details + " at log id: " + str(result.serial_id))
             success = success and field.valid
 
     print ("\nSuccess: ", success,"\n")
