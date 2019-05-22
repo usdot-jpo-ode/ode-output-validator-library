@@ -35,7 +35,7 @@ class ValidatorIntegrationTest(unittest.TestCase):
         data_file = 'tests/testfiles/bad_vsl.csv'
         config_file = 'odevalidator/csvconfig.ini'
         results = self._validate_file(data_file, config_file)
-        assert_results(self, results, 6)
+        assert_results(self, results, 4)
     
     def test_bad_file_does_bad_things(self):
         data_file = 'tests/testfiles/bad.json'
