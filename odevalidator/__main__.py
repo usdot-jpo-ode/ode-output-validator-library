@@ -14,6 +14,7 @@ if __name__ == '__main__':
     """
     parser = ArgumentParser()
     parser.add_argument("--data-file", dest="data_file_path", help="Path to log data file that will be sent to the ODE for validation.", metavar="DATAFILEPATH", required=True)
+    parser.add_argument("--config-file", dest="config_file_path", help="Path to config.ini file that will be used to validate the data file.", metavar="CONFIGFILEPATH", required=False)
     args = parser.parse_args()
 
     msg_list = []
@@ -22,7 +23,17 @@ if __name__ == '__main__':
 
     msg_queue = queue.Queue()
     for msg in msg_list:
-        msg_queue.put(msg)
+        if msg and not msg.startswith('#'):
+            msg_queue.put(msg)
 
-    results = TestCase().validate_queue(msg_queue)
-    print(json.dumps(results))
+    results = TestCase(args.config_file_path).validate_queue(msg_queue)
+    #print(results[0].field_validations[0].valid)
+
+    success = True
+    for result in results:
+        for field in result.field_validations:
+            if field.valid == False:
+                print("Invalid field '" + field.field_path + "' due to " + field.details + " at log id: " + str(result.serial_id))
+            success = success and field.valid
+
+    print ("\nSuccess: ", success,"\n")

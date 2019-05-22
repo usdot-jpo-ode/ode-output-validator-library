@@ -206,6 +206,7 @@ class Field:
 class TestCase:
     def __init__(self, filepath=None):
         self.config = ConfigParser(interpolation=ExtendedInterpolation())
+        self.record_parser = {"json": json.loads, "csv": self.parse_csv}
         if filepath is None:
             default_config = pkg_resources.resource_string(__name__, "config.ini")
             self.config.read_string(str(default_config, 'utf-8'))
@@ -214,9 +215,21 @@ class TestCase:
                 raise ValidatorException("Custom configuration file '%s' could not be found" % filepath)
             self.config.read(filepath)
 
+        if self.config.has_section("_settings"):
+            self.data_type = self.config.get("_settings", "DataType")
+            self.SequentialValidation = self.config.getboolean("_settings", "Sequential")
+            if self.data_type == "csv":
+                self.has_header = self.config.getboolean("_settings", "HasHeader")
+            else:
+                self.has_header = False
+        else:
+            raise ValidatorException("Invalid config ini file, '%s'. '_settings' field not defined." % filepath)
+
         self.field_list = []
         self.skip_sequential_checks = set()
         for key in self.config.sections():
+            if key == "_settings":
+                continue;
             self.field_list.append(Field(key, self.config[key], self))
 
     def _validate(self, data):
@@ -229,20 +242,54 @@ class TestCase:
     def validate_queue(self, msg_queue):
         results = []
         msg_list = []
+        msg_count = 1
+        # if header, skip over it
+        if self.has_header:
+            header = msg_queue.get()
+            self.check_headers(header)
+
         while not msg_queue.empty():
             line = msg_queue.get()
-            current_msg = json.loads(line)
+            current_msg = self.record_parser[self.data_type](line)
             msg_list.append(current_msg)
-            serial_id = str(current_msg['metadata']['serialId'])
+
+            # if json data log, serial_id is set to data log's serial_id
+            # otherwise, serial_id is set to the log number due to potential lack of actual serial_id
+            serial_id = msg_count
+            msg_count += 1
+            if self.data_type == "json":
+                serial_id = str(current_msg['metadata']['serialId'])
+
             field_validations = self._validate(current_msg)
             results.append(RecordValidationResult(serial_id, field_validations, current_msg))
 
-        seq = Sequential(self.skip_sequential_checks)
-        sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
+        if self.SequentialValidation:
+            seq = Sequential(self.skip_sequential_checks)
+            sorted_list = sorted(msg_list, key=lambda msg: msg['metadata']['serialId']['serialNumber'])
 
-        sequential_validation = seq.perform_sequential_validations(sorted_list)
+            sequential_validation = seq.perform_sequential_validations(sorted_list)
 
-        results.extend(sequential_validation)
+            results.extend(sequential_validation)
 
         return results
 
+    def parse_csv(self, line):
+        csv_dict = {}
+        csv_fields = line.split(",")
+        index = 0
+
+        for field in self.field_list:
+            csv_dict[field.path] = csv_fields[index]
+            index += 1
+
+        return csv_dict
+
+    def check_headers(self, headers):
+        csv_fields = headers.split(",")
+        index = 0
+
+        logger = logging.getLogger("header-logger")
+        for field in self.field_list:
+            if not str.lower(field.path) == str.lower(csv_fields[index]):
+                logger.warning("Warning: The data file CSV header '" + str.lower(csv_fields[index]) + "' does not match the config file field '" + str.lower(field.path) + "'");
+            index += 1
