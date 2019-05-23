@@ -572,6 +572,18 @@ This library is used in the following test and verification applications as of t
 <a name="release-notes"/>
 
 ## Release Notes
+
+### Release 0.0.5
+- Added support for CSV files
+  - Added `--config-file` command-line argument
+  - Added `[_settings]` block to configuration file
+    - Added `DataType` settings configuration property
+    - Added `Sequential` settings configuration property
+    - Added `HasHeader` settings configuration property
+  - Added example csv configuration file `odevalidator/csvconfig.ini`
+  - Added csv test files
+- Removed timestamp sanity check from odeReceivedAt field
+
 ### Release 0.0.4
 * Config.ini changes
 	* Added `metadata.request` elements to config.ini
