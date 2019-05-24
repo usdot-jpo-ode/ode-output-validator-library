@@ -17,13 +17,13 @@ class SequentialUnitTest(unittest.TestCase):
         self.record_list = self.build_happy_path(self.json_seed)
 
     def test_happy_path(self):
-        print("Testing Happy Path ...")
+        # print("Testing Happy Path ...")
         record_list = self.build_happy_path(self.json_seed)
         results = self.seq.perform_sequential_validations(record_list)
         assert_results(self, results, 0)
 
     def test_missing_records(self):
-        print("Testing Missing recordId, serialNumber ...")
+        # print("Testing Missing recordId, serialNumber ...")
         self.record_list.remove(self.record_list[19])
         self.record_list.remove(self.record_list[8])
         self.record_list.remove(self.record_list[2])
@@ -31,16 +31,16 @@ class SequentialUnitTest(unittest.TestCase):
         assert_results(self, results, 7)
 
     def test_invalid_bundle_size(self):
-        print("Testing invalid bundleSize ...")
+        # print("Testing invalid bundleSize ...")
         self.record_list.remove(self.record_list[15])
         self.record_list.remove(self.record_list[6])
         results = self.seq.perform_sequential_validations(self.record_list)
-        # Even though we have removed the last record of a full bundle, the validator can't detect if this is a head of a full list or a full list. 
+        # Even though we have removed the last record of a full bundle, the validator can't detect if this is a head of a full list or a full list.
         # Therefore, we should get only one validation error
         assert_results(self, results, 1)
 
     def test_dup_and_chronological(self):
-        print("Testing Duplicate recordId and serialNumber and non-chronological odeReceivedAt and recordGeneratedAt ...")
+        # print("Testing Duplicate recordId and serialNumber and non-chronological odeReceivedAt and recordGeneratedAt ...")
         self.record_list[18] = copy.deepcopy(self.record_list[16])
         self.record_list[9] = copy.deepcopy(self.record_list[7])
         self.record_list[2] = copy.deepcopy(self.record_list[0])
@@ -89,7 +89,7 @@ class SequentialUnitTest(unittest.TestCase):
             bundle.append(cur_record)
             cur_record = self._next_record(cur_record)
             count -= 1
-        
+
         return bundle
 
     def _next_record(self, cur_record):
@@ -101,4 +101,3 @@ class SequentialUnitTest(unittest.TestCase):
         next_record['metadata']['odeReceivedAt'] = received_at.isoformat()
         next_record['metadata']['recordGeneratedAt'] = generated_at.isoformat()
         return next_record
-
