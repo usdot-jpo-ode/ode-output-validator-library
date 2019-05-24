@@ -29,15 +29,15 @@ class Sequential:
         first_record = sorted_bundle[0]
         old_record_id = int(first_record['metadata']['serialId']['recordId'])
         old_serial_number = int(first_record['metadata']['serialId']['serialNumber'])
-        old_record_generated_at = dateutil.parser.parse(first_record['metadata']['recordGeneratedAt'])
-        old_ode_received_at = dateutil.parser.parse(first_record['metadata']['odeReceivedAt'])
+        old_record_generated_at = dateutil.parser.parse(first_record['metadata']['recordGeneratedAt']).replace(microsecond=0)
+        old_ode_received_at = dateutil.parser.parse(first_record['metadata']['odeReceivedAt']).replace(microsecond=0)
 
         validation_results = []
         for record in sorted_bundle[1:]:
             new_record_id = int(record['metadata']['serialId']['recordId'])
             new_serial_number = int(record['metadata']['serialId']['serialNumber'])
-            new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt'])
-            new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt'])
+            new_record_generated_at = dateutil.parser.parse(record['metadata']['recordGeneratedAt']).replace(microsecond=0)
+            new_ode_received_at = dateutil.parser.parse(record['metadata']['odeReceivedAt']).replace(microsecond=0)
 
             if 'metadata.serialId.recordId' not in self.skip_validations and record['metadata']['serialId']['bundleSize'] > 1 and new_record_id != old_record_id+1:
                 validation_results.append(FieldValidationResult(False, "Detected incorrectly incremented recordId. Expected recordId '%d' but got '%d'" % (old_record_id+1, new_record_id), serial_id = record['metadata']['serialId']))

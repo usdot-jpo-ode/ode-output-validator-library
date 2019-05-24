@@ -48,7 +48,7 @@ class Field:
         earliest_time = field_config.get('EarliestTime')
         if earliest_time is not None:
             try:
-                self.earliest_time = dateutil.parser.parse(earliest_time)
+                self.earliest_time = dateutil.parser.parse(earliest_time).replace(microsecond=0)
             except Exception as e:
                 raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
         latest_time = field_config.get('LatestTime')
@@ -57,7 +57,7 @@ class Field:
                 self.latest_time = datetime.now(timezone.utc)
             else:
                 try:
-                    self.latest_time = dateutil.parser.parse(latest_time)
+                    self.latest_time = dateutil.parser.parse(latest_time).replace(microsecond=0)
                 except Exception as e:
                     raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
 
@@ -99,11 +99,11 @@ class Field:
                             # check the value against it. Otherwise, carry on without a validation error
                             validation = self._check_conditional(then_part, data_field_value, data)
 
-                            # This is NOT a skipSequentialValidation condition and 
+                            # This is NOT a skipSequentialValidation condition and
                             # therefore a field validation condition is met. If it is skipSequentialValidation
-                            # we don't consider it a condition for field validation. Also, 
+                            # we don't consider it a condition for field validation. Also,
                             field_validation_condition_met = True
-                
+
                 if not field_validation_condition_met:
                     validation = self._check_unconditional(data_field_value)
             else:
@@ -146,7 +146,7 @@ class Field:
                 if data_field_value not in then_part['matchAgainst']:
                     # the existing field value is not among the expected values
                     validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
-        
+
         return validation
 
     def _get_field_value(self, path_str, data):
@@ -179,7 +179,7 @@ class Field:
                         return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(data_field_value), self.lower_limit), self.path)
                 elif self.type == TYPE_TIMESTAMP:
                     try:
-                        time_value = dateutil.parser.parse(data_field_value)
+                        time_value = dateutil.parser.parse(data_field_value).replace(microsecond=0)
                         if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
                             return FieldValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self.path)
 
@@ -193,9 +193,9 @@ class Field:
 
     def to_json(self):
         return {
-            'Path': self.path, 
-            'Type': self.type if hasattr(self, 'type') else None, 
-            'UpperLimit': self.upper_limit if hasattr(self, 'upper_limit') else None, 
+            'Path': self.path,
+            'Type': self.type if hasattr(self, 'type') else None,
+            'UpperLimit': self.upper_limit if hasattr(self, 'upper_limit') else None,
             'LowerLimit': self.lower_limit if hasattr(self, 'lower_limit') else None,
             'Values': self.values if hasattr(self, 'values') else None,
             'EqualsValue': self.equals_value if hasattr(self, 'equals_value') else None,

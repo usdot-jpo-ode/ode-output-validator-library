@@ -179,7 +179,7 @@ class RecordValidationResult:
 ```
 
 **Response Syntax**
-The following is a truncated examples of the `validate_queue` response. Full sample can be 
+The following is a truncated examples of the `validate_queue` response. Full sample can be
 viewed by following the provided link:
 
 ```
@@ -194,7 +194,7 @@ viewed by following the provided link:
 			"Field": "metadata.recordGeneratedBy",
 			"Valid": true,
 			"Details": ""
-		}, 
+		},
 		...
 	],
 	"Record": {
@@ -312,7 +312,7 @@ properties:
     type: array
     items:
       "$ref": "#/definitions/Conditions"
-	  
+
 definitions:
   Conditions:
     ifPart:
@@ -353,14 +353,14 @@ definitions:
       items:
         type:
           "$ref": "#/definitions/ThenPart"
-		  
+
   ThenPart:
     description: This is the data schema for `thenPart` component of `EqualsValue` config option
     type: object
     properties:
       startsWithField:
         description: The value of this property is a fully qualified path to another data field.
-          The value of this field is expected to `start` with the value of 
+          The value of this field is expected to `start` with the value of
           the referenced data field.
         type: string
 
@@ -370,7 +370,7 @@ definitions:
         type: array
         items:
           type: string
-          
+
       skipSequentialValidation:
         description: This boolean property specifies if this sequential or chronological field should take part in sequential validation or not.
           set the value of this property to True if you would like to skip sequential validation of this field.
@@ -484,16 +484,16 @@ EqualsValue = {"startsWithField": "metadata.recordType"}
   - Summary: Used with decimal types to specify the highest acceptable value for this field
   - Value: decimal number: `UpperLimit = 150.43`
 - `EarliestTime` \[_optional_\]
-  - Summary: Used with timestamp types to specify the earliest acceptable timestamp for this field
+  - Summary: Used with timestamp types to specify the earliest acceptable timestamp for this field down to second-level precision
   - Value: ISO timestamp: `EarliestTime = 2018-12-03T00:00:00.000Z`
   - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
 - `LatestTime` \[_optional_\]
-  - Summary: Used with timestamp types to specify the latest acceptable timestamp for this field
+  - Summary: Used with timestamp types to specify the latest acceptable timestamp for this field down to second-level precision
   - Special value: Use `NOW` to validate that the timestamp is not in the future: `LatestTime = NOW`
   - Value: ISO timestamp: `LatestTime = 2018-12-03T00:00:00.000Z`
   - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
 
-The following field validation specifies that sequential validation should NOT be enacted on `metadata.recordGeneratedAt` when the record is generated 
+The following field validation specifies that sequential validation should NOT be enacted on `metadata.recordGeneratedAt` when the record is generated
 by TMC (`"metadata.recordGeneratedBy":"TMC"`).
 
 ```
@@ -505,7 +505,7 @@ EqualsValue = {"conditions":[{"ifPart":{"fieldName":"metadata.recordGeneratedBy"
 
 The following field validation specifies that sequential validation should NOT be enacted on `metadata.serialId.recordId` when the records is from
 and `rxMsg` OR the records is _santiized_ (`"metadata.sanitized": "True"`.
-fields when 
+fields when
 
 ```
 [metadata.serialId.recordId]
@@ -573,6 +573,9 @@ This library is used in the following test and verification applications as of t
 
 ## Release Notes
 
+### Release 0.0.6
+- Reduced precision of timestamp parsing to second-level instead of microsecond-level to allow roughly 1 second of tolerance
+
 ### Release 0.0.5
 - Added support for CSV files
   - Added `--config-file` command-line argument
@@ -592,15 +595,15 @@ is always a possibility that two keys at different structures be named the same.
 has to be the ful path of the field name.
 	* Took advantage of python configuration file variable dereferencing
 	* `config.ini` `then_part` can now be an empty array or completely missing which would mean that the field is
-optional if the `if_part` condition is met. 
+optional if the `if_part` condition is met.
 	* The `fieldValue` of the `ifPart` can also be eliminated which would mean that the if the field identified by
-the `fieldName` of the `ifPart` exists, the field has to be validated. If it the field doesn't exist, 
+the `fieldName` of the `ifPart` exists, the field has to be validated. If it the field doesn't exist,
 it is considered optional and no validation error is issued.
 	* Fields can now be specified to allow empty value by setting `AllowEmpty = True`. Currently only
-`elevation` is allowed to be empty.	
+`elevation` is allowed to be empty.
 * Added field info to `FieldValidationResult` (renamed from ValidationResult) objects
 * Added serialId to the `RecordValidationResult` (NEW) object. This replaces RecordID.
-* `Field, FieldValidationResult and RecordValidationResult` objects now have `__str__()` method 
+* `Field, FieldValidationResult and RecordValidationResult` objects now have `__str__()` method
 which allows them to be serialized for printing purposes.
 * Test files `good.json` and `bad.json` were updated with new tests for Broadcast TIM
 

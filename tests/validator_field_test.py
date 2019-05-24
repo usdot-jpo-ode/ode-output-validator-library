@@ -21,7 +21,7 @@ class FieldUnitTest(unittest.TestCase):
             self.assertEqual("Missing required configuration property 'Type' for field a.b.c={}", str(e))
 
     def test_constructor_fails_no_field_config(self):
-        self.assertEquals('{"Path": "a.b.c", "Type": null, "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": null, "LatestTime": null, "AllowEmpty": null}', str(Field("a.b.c")))
+        self.assertEqual('{"Path": "a.b.c", "Type": null, "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": null, "LatestTime": null, "AllowEmpty": null}', str(Field("a.b.c")))
 
     def test_constructor_fails_invalid_earliesttime(self):
         input_field_object = {"Type":"timestamp", "EarliestTime":"invalidtimestamp"}
@@ -34,7 +34,7 @@ class FieldUnitTest(unittest.TestCase):
     def test_constructor_succeeds_valid_earliesttime(self):
         input_field_object = {"Type":"timestamp", "EarliestTime":"2019-03-14T14:54:21.596Z"}
         actual_field = Field("a.b.c", input_field_object)
-        self.assertEqual("2019-03-14 14:54:21.596000+00:00", str(actual_field.earliest_time))
+        self.assertEqual("2019-03-14 14:54:21+00:00", str(actual_field.earliest_time))
 
     def test_constructor_fails_invalid_latesttime(self):
         input_field_object = {"Type":"timestamp", "LatestTime":"invalidtimestamp"}
@@ -47,7 +47,7 @@ class FieldUnitTest(unittest.TestCase):
     def test_constructor_succeeds_valid_latesttime(self):
         input_field_object = {"Type":"timestamp", "LatestTime":"2019-03-14T14:54:21.596Z"}
         actual_field = Field("a.b.c", input_field_object)
-        self.assertEqual("2019-03-14 14:54:21.596000+00:00", str(actual_field.latest_time))
+        self.assertEqual("2019-03-14 14:54:21+00:00", str(actual_field.latest_time))
 
     def test_constructor_succeeds_latesttime_now_keyword(self):
         input_field_object = {"Type":"timestamp", "LatestTime":"NOW"}
@@ -169,6 +169,5 @@ class FieldUnitTest(unittest.TestCase):
     def testFieldSerialization(self):
         test_field_object = {"Type":"timestamp", "EarliestTime":"2019-03-14T14:54:20.000Z"}
         test_field = Field("a.b.c", test_field_object)
-        self.assertEquals('{"Path": "a.b.c", "Type": "timestamp", "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": "2019-03-14T14:54:20+00:00", "LatestTime": null, "AllowEmpty": false}', json.dumps(test_field.to_json()))
-        self.assertEquals('{"Path": "a.b.c", "Type": "timestamp", "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": "2019-03-14T14:54:20+00:00", "LatestTime": null, "AllowEmpty": false}', str(test_field))
-
+        self.assertEqual('{"Path": "a.b.c", "Type": "timestamp", "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": "2019-03-14T14:54:20+00:00", "LatestTime": null, "AllowEmpty": false}', json.dumps(test_field.to_json()))
+        self.assertEqual('{"Path": "a.b.c", "Type": "timestamp", "UpperLimit": null, "LowerLimit": null, "Values": null, "EqualsValue": null, "EarliestTime": "2019-03-14T14:54:20+00:00", "LatestTime": null, "AllowEmpty": false}', str(test_field))
