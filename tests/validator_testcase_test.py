@@ -12,7 +12,7 @@ class ValidatorUnitTest(unittest.TestCase):
 
     def test_constructor_does_not_raise_exception_config_file_present(self):
         try:
-            validator = TestCase(filepath="odevalidator/config.ini")
+            validator = TestCase(filepath="odevalidator/configs/config.ini")
             self.assertTrue(len(validator.config.sections()) > 0)
         except ValidatorException as e:
             self.fail("Unexpected exception: %s" % str(e))

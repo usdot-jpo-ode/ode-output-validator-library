@@ -279,7 +279,7 @@ class TestCase:
             self.config.read_string(str(default_config, 'utf-8'))  # Read config file (already downloaded locally)
         else:
             if not Path(filepath).is_file():
-                raise ValidatorException("Custom configuration file could not be found")
+                raise ValidatorException("Custom configuration file '%s' could not be found" % filepath)
             self.config.read(filepath)
 
         if self.config.has_section("_settings"):
