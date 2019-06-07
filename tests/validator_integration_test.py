@@ -32,6 +32,12 @@ class ValidatorIntegrationTest(unittest.TestCase):
         config_file = 'odevalidator/configs/csvconfig.ini'
         results = self._validate_file(data_file, config_file)
         assert_results(self, results, 0)
+
+    def test_csv_timestamp_file(self):
+        data_file = 'tests/testfiles/good_vsl_timestamp.csv'
+        config_file = 'odevalidator/configs/csv_timestamp_config.ini'
+        results = self._validate_file(data_file, config_file)
+        assert_results(self, results, 0)
     
     def test_bad_csv_file(self):
         data_file = 'tests/testfiles/bad_vsl.csv'

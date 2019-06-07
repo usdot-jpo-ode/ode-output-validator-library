@@ -579,6 +579,9 @@ This library is used in the following test and verification applications as of t
   - Validation for choice elements (only 1 object of a set is allowed) are now supported
   - EqualsValue logic now allows mandatory fields within optional fields
   - Added specific configuration files for BSM and TIM message types with payload fields
+- Added flexible date format parsing with the inclusion of a `DateFormat` parameter in configuration files for unusually formatted timestamps using python strftime strings
+  - Example: For the timestamp `01-APR-17 12.02.17.833000000 AM` the proper `DateFormat` would be `%d-%b-%y %I.%M.%S.%f000 %p`
+  - Documentation on how to create a python strftime format string can be found at `http://strftime.org/`
 
 ### Release 0.0.6
 - Reduced precision of timestamp parsing to second-level instead of microsecond-level to allow roughly 1 second of tolerance
