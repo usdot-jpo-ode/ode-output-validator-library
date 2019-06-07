@@ -28,10 +28,10 @@ The constraints on the messages can be considered in two categories as outlined 
 This library comes ready to use right out of the box. To get started testing quickly:
 
 1. Clone this repository and run `install.sh`
-2. Run the library as a python module and pass your file (with records separated by newlines) using the `--data-file` argument:
+2. Run the library as a python module and pass your file (with records separated by newlines) using the `--data-file` and `--config` arguments:
 
 ```bash
-python -m odevalidator --data-file tests/testfiles/good.json
+python -m odevalidator --data-file tests/testfiles/good.json --config odevalidator/configs/config.ini
 ```
 
 If everything worked, you should see these messages:
@@ -572,6 +572,13 @@ This library is used in the following test and verification applications as of t
 <a name="release-notes"/>
 
 ## Release Notes
+
+### Release 0.0.7
+- Added complete validation of payload for BSM and TIM message types
+  - Lists and arbitrarily nested lists are now supported
+  - Validation for choice elements (only 1 object of a set is allowed) are now supported
+  - EqualsValue logic now allows mandatory fields within optional fields
+  - Added specific configuration files for BSM and TIM message types with payload fields
 
 ### Release 0.0.6
 - Reduced precision of timestamp parsing to second-level instead of microsecond-level to allow roughly 1 second of tolerance
