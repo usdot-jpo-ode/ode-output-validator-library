@@ -12,12 +12,14 @@ class ValidatorIntegrationTest(unittest.TestCase):
 
     def test_good_bsmTx_file_passes_sequential_checks(self):
         data_file = 'tests/testfiles/good_bsmTx.json'
-        results = self._validate_file(data_file)
+        config_file = 'odevalidator/configs/config_bsm.ini'
+        results = self._validate_file(data_file, config_file)
         assert_results(self, results, 0)
 
     def test_good_braodcast_tim(self):
         data_file = 'tests/testfiles/good_broadcast_tim.json'
-        results = self._validate_file(data_file)
+        config_file = 'odevalidator/configs/config_tim.ini'
+        results = self._validate_file(data_file, config_file)
         assert_results(self, results, 0)
 
     def test_good_rxMsg_BSMonly(self):
@@ -27,13 +29,19 @@ class ValidatorIntegrationTest(unittest.TestCase):
 
     def test_csv_file(self):
         data_file = 'tests/testfiles/good_vsl.csv'
-        config_file = 'odevalidator/csvconfig.ini'
+        config_file = 'odevalidator/configs/csvconfig.ini'
+        results = self._validate_file(data_file, config_file)
+        assert_results(self, results, 0)
+
+    def test_csv_timestamp_file(self):
+        data_file = 'tests/testfiles/good_vsl_timestamp.csv'
+        config_file = 'odevalidator/configs/csv_timestamp_config.ini'
         results = self._validate_file(data_file, config_file)
         assert_results(self, results, 0)
     
     def test_bad_csv_file(self):
         data_file = 'tests/testfiles/bad_vsl.csv'
-        config_file = 'odevalidator/csvconfig.ini'
+        config_file = 'odevalidator/configs/csvconfig.ini'
         results = self._validate_file(data_file, config_file)
         assert_results(self, results, 4)
     

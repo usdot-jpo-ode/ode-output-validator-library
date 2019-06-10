@@ -28,10 +28,10 @@ The constraints on the messages can be considered in two categories as outlined 
 This library comes ready to use right out of the box. To get started testing quickly:
 
 1. Clone this repository and run `install.sh`
-2. Run the library as a python module and pass your file (with records separated by newlines) using the `--data-file` argument:
+2. Run the library as a python module and pass your file (with records separated by newlines) using the `--data-file` and `--config` arguments:
 
 ```bash
-python -m odevalidator --data-file tests/testfiles/good.json
+python -m odevalidator --data-file tests/testfiles/good.json --config odevalidator/configs/config.ini
 ```
 
 If everything worked, you should see these messages:
@@ -80,7 +80,8 @@ Supported stateless checks:
 1. Field exists and is not empty (implicit)
 3. Field is a specific value
 4. Field is one of several specific values
-5. Field value is in a certain range
+5. Field contains one of several specific objects
+6. Field value is in a certain range
 
 
 The library is designed to encapsulate functionality that is most useful for all users.
@@ -89,6 +90,88 @@ The library is designed to encapsulate functionality that is most useful for all
 3. Data files with multiple types of messages will be processed based on the conditional statements in the config file.
 4. Test cases can have optional fields. If fields are declared in the configuration file, they are considered as required
    fields *unless* an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
+   
+##### Config File Implementation Examples
+```
+"pathHistory": {
+              "crumbData": [
+                {
+                  "elevationOffset": 0,
+                  "latOffset": 0.0000769,
+                  "lonOffset": 0.0000093,
+                  "timeOffset": 1.3
+                },
+                {
+                  "elevationOffset": -0.2,
+                  "latOffset": 0.0002333,
+                  "lonOffset": 0.0001138,
+                  "timeOffset": 4.2
+                },
+                {
+                  "elevationOffset": -0.4,
+                  "latOffset": 0.0003688,
+                  "lonOffset": 0.0001856,
+                  "timeOffset": 7.4
+                },
+                {
+                  "elevationOffset": -1.5,
+                  "latOffset": 0.0008193,
+                  "lonOffset": 0.0001893,
+                  "timeOffset": 14.69
+                }]
+	}
+```
+	
+Above is shown some sample json data, from a BSM log.
+The config sections for part of the above data are as follows:
+
+```
+[pathHistory.crumbData.list.elevationOffset]
+Type = decimal
+LowerLimit = 100
+EqualsValue = {"conditions":[{"ifPart":{"fieldName":"pathHistory.crumbData.list.elevationOffset"}}]}
+```
+
+```
+[pathHistory.crumbData.list.latOffset]
+Type = decimal
+UpperLimit = 100
+EqualsValue = {"conditions":[{"ifPart":{"fieldName":"pathHistory.crumbData"}}]}
+```
+
+```
+[pathHistory.crumbData{0}.timeOffset]
+Type = decimal
+UpperLimit = 100
+```
+
+###### Lists
+The existence of a list is specified by adding .list to the field path where the list breaks out into entries. This format can be utilized in both the field name/path and EqualsValue fieldName. If a specific index of a list is desired, utilize curly brackets with the index inside after the name of the list to specif the index. This is shown in the timeOffset config field. 
+
+
+###### Optional/Mandatory Fields
+The EqualsValue fieldName references the optional field that the field depends on. If the field is optional, the fieldName should reference itself. If the field is manditory assuming another field exists (usually its parent), then that field should be referenced in the fieldName. If the field is manditory regardless of other fields then the EqualsValue condition is not necessary.
+
+In the example above, elevationOffset is optional, latOffset is mandatory if crumbData exists, and crumbData{0}.timeOffset is always mandatory. 
+
+
+###### Choice Type
+Some elements in the TIM messages require a choice of 1 object from a set of objects. This is different from an enumeration because an enum is from a set of strings, not a set of objects. An example choice config section is listed below
+
+```
+[payload.data.MessageFrame.value.TravelerInformation.dataFrames.TravelerDataFrame.frameType]
+Type = choice
+Choices = ["unknown", "advisory", "roadSignage", "commercialStorage"]
+```
+
+This section describes a series of objects that may exist as children of frameType. The type is specified as choice and the names of these objects are listed in the Choices parameter. This will pass validation if and only if one of the listed objects exists under the parent object.
+
+###### Timestamps
+To resolve the issue of unusual timestamp notation in datafiles causing errors in the validation code the addition of a new property has been added to the configuration files. This optional property is called ‘DateFormat’ and can only be specified for a timestamp field. The value provided to the ‘DateFormat’ field is a python strftime expression string that specifies the format of the irregular timestamp in the datafile. Specific documentation on how to make one of these expressions can be found at http://strftime.org/. This property allows previously invalid date formats to be valid if they meet the defined format the data provider can now create for each timestamp field. This is especially useful for data providers that may not be able to change how they are formatting their timestamps but have a consistent format to timestamps for a specific field.
+
+Example Previously Invalid Format: `01-APR-17 12.02.17.833000000 AM`
+
+Example ‘DateFormat’ Value to Validate Format: `%d-%b-%y %I.%M.%S.%f000 %p`
 
 #### 2. Non-configurable, implicit, stateful checks
 
@@ -572,6 +655,16 @@ This library is used in the following test and verification applications as of t
 <a name="release-notes"/>
 
 ## Release Notes
+
+### Release 0.0.7
+- Added complete validation of payload for BSM and TIM message types
+  - Lists and arbitrarily nested lists are now supported
+  - Validation for choice elements (only 1 object of a set is allowed) are now supported
+  - EqualsValue logic now allows mandatory fields within optional fields
+  - Added specific configuration files for BSM and TIM message types with payload fields
+- Added flexible date format parsing with the inclusion of a `DateFormat` parameter in configuration files for unusually formatted timestamps using python strftime strings
+  - Example: For the timestamp `01-APR-17 12.02.17.833000000 AM` the proper `DateFormat` would be `%d-%b-%y %I.%M.%S.%f000 %p`
+  - Documentation on how to create a python strftime format string can be found at `http://strftime.org/`
 
 ### Release 0.0.6
 - Reduced precision of timestamp parsing to second-level instead of microsecond-level to allow roughly 1 second of tolerance
