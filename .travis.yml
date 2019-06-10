@@ -14,4 +14,4 @@ addons:
 script:
   - coverage run --source=odevalidator setup.py test || travis_terminate 1;
   - coverage xml -i || travis_terminate 1;
-#  - sonar-scanner -X || travis_terminate 1;
+  - sonar-scanner -X || travis_terminate 1;
