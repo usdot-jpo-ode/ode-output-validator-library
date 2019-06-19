@@ -5,7 +5,7 @@ setup(
     version="0.0.5",
     description="ODE Data Validation Library",
     packages=find_packages(),
-    package_data={'odevalidator': ['config.ini']},
+    package_data={'odevalidator': ['configs/*']},
     include_package_data=True,
     test_suite="tests",
 )
