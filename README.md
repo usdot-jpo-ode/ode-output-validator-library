@@ -90,7 +90,7 @@ The library is designed to encapsulate functionality that is most useful for all
 3. Data files with multiple types of messages will be processed based on the conditional statements in the config file.
 4. Test cases can have optional fields. If fields are declared in the configuration file, they are considered as required
    fields *unless* an `EqualsValue` declaration exists for that field and it provides a conditional and/or optional value for that field.
-   
+
 ##### Config File Implementation Examples
 ```
 "pathHistory": {
@@ -121,7 +121,7 @@ The library is designed to encapsulate functionality that is most useful for all
                 }]
 	}
 ```
-	
+
 Above is shown some sample json data, from a BSM log.
 The config sections for part of the above data are as follows:
 
@@ -146,13 +146,13 @@ UpperLimit = 100
 ```
 
 ###### Lists
-The existence of a list is specified by adding .list to the field path where the list breaks out into entries. This format can be utilized in both the field name/path and EqualsValue fieldName. If a specific index of a list is desired, utilize curly brackets with the index inside after the name of the list to specif the index. This is shown in the timeOffset config field. 
+The existence of a list is specified by adding .list to the field path where the list breaks out into entries. This format can be utilized in both the field name/path and EqualsValue fieldName. If a specific index of a list is desired, utilize curly brackets with the index inside after the name of the list to specif the index. This is shown in the timeOffset config field.
 
 
 ###### Optional/Mandatory Fields
 The EqualsValue fieldName references the optional field that the field depends on. If the field is optional, the fieldName should reference itself. If the field is manditory assuming another field exists (usually its parent), then that field should be referenced in the fieldName. If the field is manditory regardless of other fields then the EqualsValue condition is not necessary.
 
-In the example above, elevationOffset is optional, latOffset is mandatory if crumbData exists, and crumbData{0}.timeOffset is always mandatory. 
+In the example above, elevationOffset is optional, latOffset is mandatory if crumbData exists, and crumbData{0}.timeOffset is always mandatory.
 
 
 ###### Choice Type
@@ -241,14 +241,16 @@ Iterates a message queue and performs validations on each message, returning the
 **Request Syntax**
 
 ```
-results = test_case.validate(
-  msg_queue=queue.Queue()
+results = test_case.validate_queue(
+  msg_queue=queue.Queue(),
+  include_passed_results=False
 )
 ```
 
 **Parameters**
 
 - **msg_queue** (_queue.Queue_) \[REQUIRED\] A [`queue`](https://docs.python.org/3/library/queue.html) containing messages to be validated.
+- **include_passed_results** (_boolean_) \[OPTIONAL\] Whether or not to include validations that have passed in the results object.
 
 **Return Type**
 

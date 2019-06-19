@@ -299,14 +299,15 @@ class TestCase:
                 self.field_list.append(
                     Field(key, self.config[key], self))  # Adds field name and parameters to field_list
 
-    def _validate(self, data):
+    def _validate(self, data, include_passed_results=True):
         validations = []
         self.field_list_temp = []
         self.populate_field_list(data)
         field_list = self.field_list + self.field_list_temp
         for field in field_list:
             result = field.validate(data)
-            validations.append(result)
+            if include_passed_results or not result.valid:
+                validations.append(result)
         return validations
 
     def populate_field_list(self, data):  # iniates recurcive function
@@ -388,7 +389,7 @@ class TestCase:
                 keys = []
             self.populate_list_validations(keys, '', path, path_init)
 
-    def validate_queue(self, msg_queue):
+    def validate_queue(self, msg_queue, include_passed_results=True):
         results = []
         msg_list = []
         msg_count = 1
@@ -409,7 +410,7 @@ class TestCase:
             # if self.data_type == "json":
             # serial_id = str(current_msg['metadata']['serialId'])
 
-            field_validations = self._validate(current_msg)
+            field_validations = self._validate(current_msg, include_passed_results)
             results.append(RecordValidationResult(serial_id, field_validations, current_msg))
 
         if self.SequentialValidation:
