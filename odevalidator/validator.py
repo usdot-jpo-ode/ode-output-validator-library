@@ -125,7 +125,6 @@ class Field:
 
     def _is_condition_met(self, referenced_field_value, expected_field_values, data_field_value):
         condition_met = False
-        # LoggerUtility.logDebug('Expected Value: ' + str(expected_field_values) + ', Referenced Value: ' + str(referenced_field_value) + ', data field value: ' + str(data_field_value))
         if expected_field_values is None:
             # a None for expected_field_values means that referenced field ('fieldName') may or may not exist
             # If it does not exist, condition is met. If id does exist, condition is not met and value must be checked.
@@ -173,7 +172,6 @@ class Field:
                 index_begin = key.index('{')
                 index_end = key.index('}')
                 index = int(key[(index_begin + 1):index_end])
-                # LoggerUtility.logDebug('key: '  + key + ', value: ' + str(value))
                 try:
                     if value.get(key[:index_begin]):
                         value = value[key[:index_begin]][index]  # access list element of dictionary value
@@ -222,7 +220,7 @@ class Field:
                         if hasattr(self, 'latest_time') and time_value > (self.latest_time + timedelta(minutes=1)):
                             return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self.path)
                     except Exception as e:
-                        return FieldValidationResult(False, "failure to perform timestamp validation, error: %s" % (str(e)), self.path)
+                        return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self.path)
                 elif self.type == TYPE_CHOICE:
                     try:
                         count = 0
@@ -235,7 +233,7 @@ class Field:
                         if count > 1:
                             return FieldValidationResult(False, "Found '%d' choices in '%s'" % count, self.path)
                     except Exception as e:
-                        return FieldValidationResult(False, "failure to perform choice validation, error: %s" % (str(e)), self.path)
+                        return FieldValidationResult(False, "Failed to perform choice validation, error: %s" % (str(e)), self.path)
 
     def __str__(self):
         return json.dumps(self.to_json())
@@ -260,8 +258,7 @@ class TestCase:
         self.record_parser = {"json": json.loads, "csv": self.parse_csv}
 
         if not Path(filepath).is_file():
-            LoggerUtility.logError("Custom config file could not be found")
-            raise ValidatorException("Custom configuration file could not be found")
+            raise ValidatorException("Custom configuration file '%s' could not be found" % filepath.split('/')[-1])
         self.config.read(filepath)
 
         if self.config.has_section("_settings"):
@@ -340,7 +337,6 @@ class TestCase:
             index_begin = keys[0].index('{')
             index_end = keys[0].index('}')
             index = int(keys[0][(index_begin + 1):index_end])
-            # LoggerUtility.logDebug('key: ' + keys[0] + ', ' + data + ', ' + str(index_begin))
             if type(data[keys[0][:index_begin]]) != list:
                 if data.get(keys[0][:index_begin]):
                     data = data[keys[0][:index_begin]]
@@ -354,7 +350,6 @@ class TestCase:
                     keys = keys[1:]
                 else:
                     keys = []
-                # LoggerUtility.logDebug(path + ', ' + str(data))
                 self.populate_list_validations(keys, data, path, path_init)
             else:
                 if data.get(keys[0][:index_begin]):

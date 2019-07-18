@@ -27,6 +27,12 @@ class ValidatorIntegrationTest(unittest.TestCase):
         results = self._validate_file(data_file)
         assert_results(self, results, 0)
 
+    def test_good_json_alt_value(self):
+        data_file = 'tests/testfiles/good_altValPercent.json'
+        config_file = 'odevalidator/configs/configAltPercent.ini'
+        results = self._validate_file(data_file, config_file)
+        assert_results(self, results, 0)
+
     def test_csv_file(self):
         data_file = 'tests/testfiles/good_vsl.csv'
         config_file = 'odevalidator/configs/csvconfig.ini'
@@ -50,8 +56,8 @@ class ValidatorIntegrationTest(unittest.TestCase):
         results = self._validate_file(data_file)
         assert_results(self, results, 29)
 
-    def _validate_file(self, data_file, config_file = None):
-        validator = TestCase(config_file)
+    def _validate_file(self, data_file, config_file = 'odevalidator/configs/config.ini'):
+        validator = TestCase(config_file, )
 
         with open(data_file) as f:
             content = f.readlines()
