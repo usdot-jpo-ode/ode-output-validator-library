@@ -576,7 +576,7 @@ EqualsValue = {"startsWithField": "metadata.recordType"}
   - Value: ISO timestamp: `LatestTime = 2018-12-03T00:00:00.000Z`
   - Note: For more information on how to write parsable timestamps, see [dateutil.parser.parse()](https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse).
 - `Alt` \[_optional_\]
-  - Summary: Used with decimal types to specify an alternate value that might exist if there is not a decimal value
+  - Summary: Used with decimal and timestamp types to specify an alternate value that might exist if there is not a decimal value
   - Value: A string such as `Alt = NA` or `Alt = null`
 
 
@@ -661,7 +661,7 @@ This library is used in the following test and verification applications as of t
 ## Release Notes
 
 ### Release 0.0.8
-- Added support for alternate values for decimal type fields
+- Added support for alternate values for decimal and timestamp type fields
 - Added support for '%' symbols appearing at the end of a decimal field value
 - Changed choices to accept empty fields and properly invalidate them instead of throwing an exception
 - Minor bug fixes resolved with validating explicitly defined list elements

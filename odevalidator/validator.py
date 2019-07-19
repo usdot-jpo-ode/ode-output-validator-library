@@ -37,7 +37,7 @@ class Field:
         if self.type == 'timestamp':
             self.date_format = field_config.get('DateFormat')
 
-        if self.type == 'decimal':
+        if self.type == 'decimal' or self.type == 'timestamp':
             self.alt = field_config.get('Alt')
 
         # extract constraints
@@ -220,7 +220,8 @@ class Field:
                         if hasattr(self, 'latest_time') and time_value > (self.latest_time + timedelta(minutes=1)):
                             return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self.path)
                     except Exception as e:
-                        return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self.path)
+                        if (self.alt != data_field_value):
+                            return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self.path)
                 elif self.type == TYPE_CHOICE:
                     try:
                         count = 0
@@ -353,7 +354,10 @@ class TestCase:
                 self.populate_list_validations(keys, data, path, path_init)
             else:
                 if data.get(keys[0][:index_begin]):
-                    data = data[keys[0][:index_begin]][index]
+                    try:
+                        data = data[keys[0][:index_begin]][index]
+                    except:
+                        data = ''
                 if not path:
                     path = keys[0]
                 else:
