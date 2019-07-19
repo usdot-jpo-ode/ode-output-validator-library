@@ -33,10 +33,12 @@ class Field:
 
         self.type = field_config.get('Type')
         if not self.type:
-            raise ValidatorException(
-                "Missing required configuration property 'Type' for field %s=%s" % (key, field_config))
+            raise ValidatorException("Missing required configuration property 'Type' for field %s=%s" % (key, field_config))
         if self.type == 'timestamp':
             self.date_format = field_config.get('DateFormat')
+
+        if self.type == 'decimal' or self.type == 'timestamp':
+            self.alt = field_config.get('Alt')
 
         # extract constraints
         upper_limit = field_config.get('UpperLimit')
@@ -59,9 +61,7 @@ class Field:
             try:
                 self.earliest_time = dateutil.parser.parse(earliest_time).replace(microsecond=0)
             except Exception as e:
-                raise ValidatorException(
-                    "Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (
-                    key, field_config, str(e)))
+                raise ValidatorException("Unable to parse configuration file timestamp EarliestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
         latest_time = field_config.get('LatestTime')
         if latest_time is not None:
             if latest_time == 'NOW':
@@ -70,9 +70,7 @@ class Field:
                 try:
                     self.latest_time = dateutil.parser.parse(latest_time).replace(microsecond=0)
                 except Exception as e:
-                    raise ValidatorException(
-                        "Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (
-                        key, field_config, str(e)))
+                    raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
 
         self.allow_empty = False
         allow_empty = field_config.get('AllowEmpty')
@@ -105,8 +103,7 @@ class Field:
                     then_part = cond['thenPart'] if 'thenPart' in cond else None
 
                     if self._is_condition_met(referenced_field_value, expected_field_values, data_field_value):
-                        if self.test_case and then_part and 'skipSequentialValidation' in then_part and then_part[
-                            'skipSequentialValidation']:
+                        if self.test_case and then_part and 'skipSequentialValidation' in then_part and then_part['skipSequentialValidation']:
                             # For skipSequentialValidation, we don't need to do any field validation. We just save this field path for sequential check to use.
                             self.test_case.skip_sequential_checks.add(self.path)
                         elif not field_validation_condition_met:
@@ -128,7 +125,6 @@ class Field:
 
     def _is_condition_met(self, referenced_field_value, expected_field_values, data_field_value):
         condition_met = False
-        # LoggerUtility.logDebug('Expected Value: ' + str(expected_field_values) + ', Referenced Value: ' + str(referenced_field_value) + ', data field value: ' + str(data_field_value))
         if expected_field_values is None:
             # a None for expected_field_values means that referenced field ('fieldName') may or may not exist
             # If it does not exist, condition is met. If id does exist, condition is not met and value must be checked.
@@ -157,15 +153,12 @@ class Field:
                 sw_field_name = then_part['startsWithField']
                 sw_field_value = self._get_field_value(sw_field_name, data)
                 if sw_field_value and not data_field_value.startswith(sw_field_value):
-                    validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (
-                    data_field_value, sw_field_value), self.path)
+                    validation = FieldValidationResult(False, "Value of Field ('%s') does not start with %s" % (data_field_value, sw_field_value), self.path)
             elif 'matchAgainst' in then_part and isinstance(then_part['matchAgainst'], list):
                 # then_part is expected to be an array of strings, one of which should match the data_field_value
                 if data_field_value not in then_part['matchAgainst']:
                     # the existing field value is not among the expected values
-                    validation = FieldValidationResult(False,
-                                                       "Value of Field ('%s') is not one of the expected values (%s)" % (
-                                                       data_field_value, then_part['matchAgainst']), self.path)
+                    validation = FieldValidationResult(False, "Value of Field ('%s') is not one of the expected values (%s)" % (data_field_value, then_part['matchAgainst']), self.path)
 
         return validation
 
@@ -179,24 +172,24 @@ class Field:
                 index_begin = key.index('{')
                 index_end = key.index('}')
                 index = int(key[(index_begin + 1):index_end])
-                # LoggerUtility.logDebug('key: '  + key + ', value: ' + str(value))
-                if value.get(key[:index_begin]):
-                    try:
-                        value = value[key[:index_begin]][index] # access list element of dictionary value
-                    except Exception as e:
+                try:
+                    if value.get(key[:index_begin]):
+                        value = value[key[:index_begin]][index]  # access list element of dictionary value
+                    else:
                         return None
-                else:
-                    value = None
-                    break
+                except Exception as e:
+                    return None
             else:
-                value = None
-                break
+                return None
+        if value is None:
+            value = ''
         return value
 
     def _check_unconditional(self, data_field_value, data):
         if data_field_value is None:
             return FieldValidationResult(False, ("Field missing: " + self.path), self.path)
         else:
+            data_field_value = str(data_field_value).strip('"')
             if data_field_value == "":
                 if self.allow_empty:
                     return None
@@ -204,20 +197,16 @@ class Field:
                     return FieldValidationResult(False, "Field empty", self.path)
             else:
                 if self.type == TYPE_ENUM and str(data_field_value).lower() not in [x.lower() for x in self.values]:
-                    return FieldValidationResult(False, "Value '%s' not in list of known values: [%s]" % (
-                    str(data_field_value), ', '.join(map(str, self.values))), self.path)
+                    return FieldValidationResult(False, "Value '%s' not in list of known values: [%s]" % (str(data_field_value), ', '.join(map(str, self.values))), self.path)
                 elif self.type == TYPE_DECIMAL:
                     try:
-                        if hasattr(self, 'upper_limit') and Decimal(data_field_value) > self.upper_limit:
-                            return FieldValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (
-                            Decimal(data_field_value), self.upper_limit), self.path)
-                        if hasattr(self, 'lower_limit') and Decimal(data_field_value) < self.lower_limit:
-                            return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (
-                            Decimal(data_field_value), self.lower_limit), self.path)
+                        if hasattr(self, 'upper_limit') and Decimal(str(data_field_value).strip(' %')) > self.upper_limit:
+                            return FieldValidationResult(False, "Value '%d' is greater than upper limit '%d'" % (Decimal(str(data_field_value).strip(' %')), self.upper_limit), self.path)
+                        if hasattr(self, 'lower_limit') and Decimal(str(data_field_value).strip(' %')) < self.lower_limit:
+                            return FieldValidationResult(False, "Value '%d' is less than lower limit '%d'" % (Decimal(str(data_field_value).strip(' %')), self.lower_limit), self.path)
                     except Exception as e:
-                        return FieldValidationResult(False,
-                                                     "Failed to perform decimal validation, error: %s" % (str(e)),
-                                                     self.path)
+                        if (self.alt != data_field_value):
+                            return FieldValidationResult(False, "Failed to perform decimal validation, error: %s" % (str(e)), self.path)
                 elif self.type == TYPE_TIMESTAMP:
                     try:
                         if not self.date_format:
@@ -226,18 +215,13 @@ class Field:
                             time_value = datetime.strptime(data_field_value, self.date_format)
 
                         if hasattr(self, 'earliest_time') and time_value < self.earliest_time:
-                            return FieldValidationResult(False,
-                                                         "Timestamp value '%s' occurs before earliest limit '%s'" % (
-                                                         time_value, self.earliest_time), self.path)
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs before earliest limit '%s'" % (time_value, self.earliest_time), self.path)
 
                         if hasattr(self, 'latest_time') and time_value > (self.latest_time + timedelta(minutes=1)):
-                            return FieldValidationResult(False,
-                                                         "Timestamp value '%s' occurs after latest limit '%s'" % (
-                                                         time_value, self.latest_time), self.path)
+                            return FieldValidationResult(False, "Timestamp value '%s' occurs after latest limit '%s'" % (time_value, self.latest_time), self.path)
                     except Exception as e:
-                        return FieldValidationResult(False,
-                                                     "Failed to perform timestamp validation, error: %s" % (str(e)),
-                                                     self.path)
+                        if (self.alt != data_field_value):
+                            return FieldValidationResult(False, "Failed to perform timestamp validation, error: %s" % (str(e)), self.path)
                 elif self.type == TYPE_CHOICE:
                     try:
                         count = 0
@@ -250,8 +234,7 @@ class Field:
                         if count > 1:
                             return FieldValidationResult(False, "Found '%d' choices in '%s'" % count, self.path)
                     except Exception as e:
-                        return FieldValidationResult(False, "Failed to perform choice validation, error: %s" % (str(e)),
-                                                     self.path)
+                        return FieldValidationResult(False, "Failed to perform choice validation, error: %s" % (str(e)), self.path)
 
     def __str__(self):
         return json.dumps(self.to_json())
@@ -274,13 +257,10 @@ class TestCase:
     def __init__(self, filepath=None):
         self.config = ConfigParser(interpolation=ExtendedInterpolation())
         self.record_parser = {"json": json.loads, "csv": self.parse_csv}
-        if filepath is None:
-            default_config = pkg_resources.resource_string(__name__, "configs/config.ini")
-            self.config.read_string(str(default_config, 'utf-8'))  # Read config file (already downloaded locally)
-        else:
-            if not Path(filepath).is_file():
-                raise ValidatorException("Custom configuration file '%s' could not be found" % filepath)
-            self.config.read(filepath)
+
+        if not Path(filepath).is_file():
+            raise ValidatorException("Custom configuration file '%s' could not be found" % filepath.split('/')[-1])
+        self.config.read(filepath)
 
         if self.config.has_section("_settings"):
             self.data_type = self.config.get("_settings", "DataType")
@@ -296,8 +276,7 @@ class TestCase:
         self.skip_sequential_checks = set()
         for key in self.config.sections():  # Iterate through config file sections
             if key != "_settings" and key.count('.list') == 0:
-                self.field_list.append(
-                    Field(key, self.config[key], self))  # Adds field name and parameters to field_list
+                self.field_list.append(Field(key, self.config[key], self))  # Adds field name and parameters to field_list
 
     def _validate(self, data):
         validations = []
@@ -317,12 +296,10 @@ class TestCase:
                 self.populate_list_validations(keys, data, '', path)
         return field_list
 
-    def populate_list_validations(self, keys, data, path,
-                                  path_init):  # Recurcive function to loop through data and populate
+    def populate_list_validations(self, keys, data, path, path_init):  # Recurcive function to loop through data and populate
         # list indexes. This works on any number of nested lists.
         if not keys:
-            self.field_list_temp.append(
-                Field(path, self.config[path_init], self))  # Adds field name and parameters to field_list
+            self.field_list_temp.append(Field(path, self.config[path_init], self))  # Adds field name and parameters to field_list
             return
 
         if keys[0] == 'list':  # List found
@@ -334,8 +311,7 @@ class TestCase:
                 else:
                     keys = []
                 self.populate_list_validations(keys, data, path, path_init)
-            if type(
-                    data) != list:  # Found list but list or elements do not exist. Add 1 entry to list to allow invalidation later
+            if type(data) != list:
                 if len(keys) != 1:
                     keys = keys[1:]
                 else:
@@ -344,13 +320,9 @@ class TestCase:
             else:
                 for i in (range(length)):
                     path_temp = path + '{' + str(i) + '}'
-                    if len(keys) != 1:
-                        keys_temp = keys[1:]
-                        data_temp = data[i]
-                        self.populate_list_validations(keys_temp, data_temp, path_temp,
-                                                       path_init)  # Recurcive functionality
-                    else:
-                        return
+                    keys_temp = keys[1:]
+                    data_temp = data[i]
+                    self.populate_list_validations(keys_temp, data_temp, path_temp, path_init)  # Recurcive functionality
         elif keys[0] in data:
             data = data.get(keys[0])
             if not path:
@@ -366,17 +338,35 @@ class TestCase:
             index_begin = keys[0].index('{')
             index_end = keys[0].index('}')
             index = int(keys[0][(index_begin + 1):index_end])
-            if data.get(keys[0][:index_begin]):
-                data = data[keys[0][:index_begin]][index]
-            if not path:
-                path = keys[0]
+            if type(data[keys[0][:index_begin]]) != list:
+                if data.get(keys[0][:index_begin]):
+                    data = data[keys[0][:index_begin]]
+                else:
+                    data = ''
+                if not path:
+                    path = keys[0][:index_begin]
+                else:
+                    path = path + '.' + keys[0][:index_begin]
+                if len(keys) != 1:
+                    keys = keys[1:]
+                else:
+                    keys = []
+                self.populate_list_validations(keys, data, path, path_init)
             else:
-                path = path + '.' + keys[0]
-            if len(keys) != 1:
-                keys = keys[1:]
-            else:
-                keys = []
-            self.populate_list_validations(keys, data, path, path_init)
+                if data.get(keys[0][:index_begin]):
+                    try:
+                        data = data[keys[0][:index_begin]][index]
+                    except:
+                        data = ''
+                if not path:
+                    path = keys[0]
+                else:
+                    path = path + '.' + keys[0]
+                if len(keys) != 1:
+                    keys = keys[1:]
+                else:
+                    keys = []
+                self.populate_list_validations(keys, data, path, path_init)
         else:  # key not found in data
             if not path:
                 path = keys[0]
@@ -441,7 +431,6 @@ class TestCase:
         index = 0
         logger = logging.getLogger("header-logger")
         for field in self.field_list:
-            if not str.lower(field.path) == str.lower(csv_fields[index]):
-                logger.warning("Warning: The data file CSV header '" + str.lower(
-                    csv_fields[index]) + "' does not match the config file field '" + str.lower(field.path) + "'")
+            if not str.lower(field.path) == str.lower(csv_fields[index]).strip('"'):
+                logger.warning("Warning: The data file CSV header '" + str.lower(csv_fields[index]) + "' does not match the config file field '" + str.lower(field.path) + "'")
             index += 1
