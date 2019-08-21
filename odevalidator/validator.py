@@ -254,7 +254,7 @@ class Field:
 
 
 class TestCase:
-    def __init__(self, filepath=None):
+    def __init__(self, filepath='odevalidator/configs/config.ini'):
         self.config = ConfigParser(interpolation=ExtendedInterpolation())
         self.record_parser = {"json": json.loads, "csv": self.parse_csv}
 
