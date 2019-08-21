@@ -259,7 +259,7 @@ class TestCase:
         self.record_parser = {"json": json.loads, "csv": self.parse_csv}
 
         if not Path(filepath).is_file():
-            raise ValidatorException("Custom configuration file '%s' could not be found" % filepath.split('/')[-1])
+            raise ValidatorException("Custom configuration file '%s' could not be found" % filepath)
         self.config.read(filepath)
 
         if self.config.has_section("_settings"):
