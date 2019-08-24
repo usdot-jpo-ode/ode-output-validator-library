@@ -5,6 +5,9 @@ import json
 import logging
 import pkg_resources
 import queue
+import re
+import copy
+
 from collections.abc import Iterable
 from decimal import Decimal
 from pathlib import Path
@@ -71,7 +74,11 @@ class Field:
                     self.latest_time = dateutil.parser.parse(latest_time).replace(microsecond=0)
                 except Exception as e:
                     raise ValidatorException("Unable to parse configuration file timestamp LatestTime for field %s=%s, error: %s" % (key, field_config, str(e)))
-
+        
+        regex = field_config.get('RegularExpression')
+        if regex is not None:
+            self.regex = regex
+        
         self.allow_empty = False
         allow_empty = field_config.get('AllowEmpty')
         if allow_empty is not None:
@@ -235,6 +242,16 @@ class Field:
                             return FieldValidationResult(False, "Found '%d' choices in '%s'" % count, self.path)
                     except Exception as e:
                         return FieldValidationResult(False, "Failed to perform choice validation, error: %s" % (str(e)), self.path)
+                elif self.type == TYPE_STRING:
+                    try:
+                        if hasattr(self, 'regex'):
+                            match = re.match(self.regex, data_field_value)
+                            if match is None:
+                                return FieldValidationResult(False, "Regular Expressions found no match in '%s'" % self.path) 
+                            elif not(match.group() == data_field_value):
+                                return FieldValidationResult(False, "Regular Expressions do not completely match in '%s'" % self.path)
+                    except Exception as e:
+                        return FieldValidationResult(False, "failure to perform string validation, error: %s" % (str(e)), self.path)
 
     def __str__(self):
         return json.dumps(self.to_json())
@@ -293,90 +310,111 @@ class TestCase:
         for path in self.config.sections():  # Iterate through config file sections
             if path.count('.list') != 0:
                 keys = path.split(".")
-                self.populate_list_validations(keys, data, '', path)
+                indexes = []
+                self.populate_list_validations(keys, data, '', path, indexes)
         return field_list
 
-    def populate_list_validations(self, keys, data, path, path_init):  # Recurcive function to loop through data and populate
+    def populate_list_validations(self, keys, data, path, path_init, indexes):  # Recurcive function to loop through data and populate
         # list indexes. This works on any number of nested lists.
         if not keys:
-            self.field_list_temp.append(Field(path, self.config[path_init], self))  # Adds field name and parameters to field_list
+            equals_value, new_config = self.set_config_equals_value(path_init, path, indexes)
+            self.field_list_temp.append(Field(path, new_config, self))  # Adds field name and parameters to field_list
+            if equals_value:
+                self.config[path_init]['EqualsValue'] = str(equals_value)
             return
 
         if keys[0] == 'list':  # List found
             length = len(data)
             if data == '':
                 path = path + '{0}'
-                if len(keys) != 1:
-                    keys = keys[1:]
-                else:
-                    keys = []
-                self.populate_list_validations(keys, data, path, path_init)
+                keys = self.set_keys(keys)
+                indexes.append('{0}')
+                self.populate_list_validations(keys, data, path, path_init, indexes)
             if type(data) != list:
-                if len(keys) != 1:
-                    keys = keys[1:]
-                else:
-                    keys = []
-                self.populate_list_validations(keys, data, path, path_init)
+                keys = self.set_keys(keys)
+                indexes.append('')
+                self.populate_list_validations(keys, data, path, path_init, indexes)
             else:
                 for i in (range(length)):
                     path_temp = path + '{' + str(i) + '}'
                     keys_temp = keys[1:]
                     data_temp = data[i]
-                    self.populate_list_validations(keys_temp, data_temp, path_temp, path_init)  # Recurcive functionality
+                    indexes.append('{' + str(i) + '}')
+                    self.populate_list_validations(keys_temp, data_temp, path_temp, path_init, indexes)  # Recurcive functionality
+                    indexes = indexes[:-1]
         elif keys[0] in data:
-            data = data.get(keys[0])
-            if not path:
-                path = keys[0]
-            else:
-                path = path + '.' + keys[0]
-            if len(keys) != 1:
-                keys = keys[1:]
-            else:
-                keys = []
-            self.populate_list_validations(keys, data, path, path_init)
+            try:
+                data = data.get(keys[0])
+            except Exception as e:
+                    print('Non-dictionary encountered with value of: ' + str(data))
+                    raise e
+            path = self.set_path(path, keys[0])
+            keys = self.set_keys(keys)
+            self.populate_list_validations(keys, data, path, path_init, indexes)
         elif keys[0].count('{') == 1:  # Index of list hardcoded
             index_begin = keys[0].index('{')
             index_end = keys[0].index('}')
             index = int(keys[0][(index_begin + 1):index_end])
-            if type(data[keys[0][:index_begin]]) != list:
+            if keys[0][:index_begin] not in data:
+                path = self.set_path(path, keys[0])
+                keys = self.set_keys(keys)
+                self.populate_list_validations(keys, '', path, path_init, indexes)
+            elif type(data[keys[0][:index_begin]]) != list:
                 if data.get(keys[0][:index_begin]):
                     data = data[keys[0][:index_begin]]
                 else:
                     data = ''
-                if not path:
-                    path = keys[0][:index_begin]
-                else:
-                    path = path + '.' + keys[0][:index_begin]
-                if len(keys) != 1:
-                    keys = keys[1:]
-                else:
-                    keys = []
-                self.populate_list_validations(keys, data, path, path_init)
+                path = self.set_path(path, keys[0][:index_begin])
+                keys = self.set_keys(keys)
+                self.populate_list_validations(keys, data, path, path_init, indexes)
             else:
                 if data.get(keys[0][:index_begin]):
                     try:
                         data = data[keys[0][:index_begin]][index]
                     except:
                         data = ''
-                if not path:
-                    path = keys[0]
-                else:
-                    path = path + '.' + keys[0]
-                if len(keys) != 1:
-                    keys = keys[1:]
-                else:
-                    keys = []
-                self.populate_list_validations(keys, data, path, path_init)
+                path = self.set_path(path, keys[0])
+                keys = self.set_keys(keys)
+                self.populate_list_validations(keys, data, path, path_init, indexes)
         else:  # key not found in data
-            if not path:
-                path = keys[0]
-            else:
-                path = path + '.' + keys[0]
-            if len(keys) != 1:
-                keys = keys[1:]
-            else:
-                keys = []
-            self.populate_list_validations(keys, '', path, path_init)
+            path = self.set_path(path, keys[0])
+            keys = self.set_keys(keys)
+            self.populate_list_validations(keys, '', path, path_init, indexes)
+
+    def set_path(self, path, key):
+        if not path:
+            path = key
+        else:
+            path = path + '.' + key
+        return path
+
+    def set_keys(self, keys):
+        if len(keys) != 1:
+            keys = keys[1:]
+        else:
+            keys = []
+        return keys
+
+    def set_config_equals_value(self, path_init, path, indexes):
+        config = self.config[path_init]
+        equals_value = config.get('EqualsValue')
+        if equals_value is not None:
+            keys = path_init.split('.')
+            embedded_path = keys[0]
+            keys = keys[1:]
+            for key in keys:
+                if embedded_path + '.' + key in equals_value:
+                    embedded_path += '.' + key
+                else:
+                    break
+            new_path = embedded_path
+            i = 0
+            while '.list' in new_path:
+                i = new_path.find('.list')
+                new_path = new_path[:i] + indexes[0]  + new_path[(i+5):]
+            new_equals_value = equals_value.replace(embedded_path, new_path)
+            config['EqualsValue'] = new_equals_value
+        return equals_value, config
 
     def validate_queue(self, msg_queue):
         results = []

@@ -56,6 +56,18 @@ class ValidatorIntegrationTest(unittest.TestCase):
         results = self._validate_file(data_file)
         assert_results(self, results, 29)
 
+    def test_good_regex(self):
+        data_file = 'tests/testfiles/good_regex.csv'
+        regex_config = 'odevalidator/configs/regex_config.ini'
+        results = self._validate_file(data_file, regex_config)
+        assert_results(self, results, 0)
+
+    def test_bad_regex(self):
+        data_file = 'tests/testfiles/bad_regex.csv'
+        regex_config = 'odevalidator/configs/regex_config.ini'
+        results = self._validate_file(data_file, regex_config)
+        assert_results(self, results, 3)
+
     def _validate_file(self, data_file, config_file = 'odevalidator/configs/config.ini'):
         validator = TestCase(config_file, )
 
