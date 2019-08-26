@@ -173,6 +173,17 @@ Example Previously Invalid Format: `01-APR-17 12.02.17.833000000 AM`
 
 Example ‘DateFormat’ Value to Validate Format: `%d-%b-%y %I.%M.%S.%f000 %p`
 
+###### Regular Expression
+The content of strings of text can be validated by providing a regular expression. This requires a very specific regular expression that will be used for all of the data type's fields that it was provided for. In order t provide the regular expression for a specific string field, the 'RegularExpression' will be defined with the value of the regular expression.
+
+The below example would validate a 7-digit string of numbers such as '1234567':
+
+[fieldName]
+Type = string
+RegularExpression = \d\d\d\d\d\d\d
+
+This feature can be used to validate uuids and unique dates that might not be so easily validated by the timestamp and its DateFormat property.
+
 #### 2. Non-configurable, implicit, stateful checks
 
 The validation library accepts messages in a list format so that it may validate properties of the list as a whole. These checks include:
@@ -659,6 +670,9 @@ This library is used in the following test and verification applications as of t
 <a name="release-notes"/>
 
 ## Release Notes
+
+### Release 0.0.8
+- Regular expression validation for strings
 
 ### Release 0.0.8
 - Added support for alternate values for decimal and timestamp type fields
