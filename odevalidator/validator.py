@@ -329,18 +329,18 @@ class TestCase:
                 path = path + '{0}'
                 keys = self.set_keys(keys)
                 indexes.append('{0}')
-                self.populate_list_validations(keys, data, path, path_init, indexes)
+                self.populate_list_validations(keys, data, path, path_init, copy.deepcopy(indexes))
             if type(data) != list:
                 keys = self.set_keys(keys)
                 indexes.append('')
-                self.populate_list_validations(keys, data, path, path_init, indexes)
+                self.populate_list_validations(keys, data, path, path_init, copy.deepcopy(indexes))
             else:
                 for i in (range(length)):
                     path_temp = path + '{' + str(i) + '}'
                     keys_temp = keys[1:]
                     data_temp = data[i]
                     indexes.append('{' + str(i) + '}')
-                    self.populate_list_validations(keys_temp, data_temp, path_temp, path_init, indexes)  # Recurcive functionality
+                    self.populate_list_validations(keys_temp, data_temp, path_temp, path_init, copy.deepcopy(indexes))  # Recurcive functionality
                     indexes = indexes[:-1]
         elif keys[0] in data:
             try:
@@ -350,7 +350,7 @@ class TestCase:
                     raise e
             path = self.set_path(path, keys[0])
             keys = self.set_keys(keys)
-            self.populate_list_validations(keys, data, path, path_init, indexes)
+            self.populate_list_validations(keys, data, path, path_init, copy.deepcopy(indexes))
         elif keys[0].count('{') == 1:  # Index of list hardcoded
             index_begin = keys[0].index('{')
             index_end = keys[0].index('}')
@@ -358,7 +358,7 @@ class TestCase:
             if keys[0][:index_begin] not in data:
                 path = self.set_path(path, keys[0])
                 keys = self.set_keys(keys)
-                self.populate_list_validations(keys, '', path, path_init, indexes)
+                self.populate_list_validations(keys, '', path, path_init, copy.deepcopy(indexes))
             elif type(data[keys[0][:index_begin]]) != list:
                 if data.get(keys[0][:index_begin]):
                     data = data[keys[0][:index_begin]]
@@ -366,7 +366,7 @@ class TestCase:
                     data = ''
                 path = self.set_path(path, keys[0][:index_begin])
                 keys = self.set_keys(keys)
-                self.populate_list_validations(keys, data, path, path_init, indexes)
+                self.populate_list_validations(keys, data, path, path_init, copy.deepcopy(indexes))
             else:
                 if data.get(keys[0][:index_begin]):
                     try:
@@ -375,11 +375,11 @@ class TestCase:
                         data = ''
                 path = self.set_path(path, keys[0])
                 keys = self.set_keys(keys)
-                self.populate_list_validations(keys, data, path, path_init, indexes)
+                self.populate_list_validations(keys, data, path, path_init, copy.deepcopy(indexes))
         else:  # key not found in data
             path = self.set_path(path, keys[0])
             keys = self.set_keys(keys)
-            self.populate_list_validations(keys, '', path, path_init, indexes)
+            self.populate_list_validations(keys, '', path, path_init, copy.deepcopy(indexes))
 
     def set_path(self, path, key):
         if not path:
@@ -411,7 +411,7 @@ class TestCase:
             i = 0
             while '.list' in new_path:
                 i = new_path.find('.list')
-                new_path = new_path[:i] + indexes[0]  + new_path[(i+5):]
+                new_path = new_path[:i] + indexes.pop(0)  + new_path[(i+5):]
             new_equals_value = equals_value.replace(embedded_path, new_path)
             config['EqualsValue'] = new_equals_value
         return equals_value, config
