@@ -675,6 +675,7 @@ This library is used in the following test and verification applications as of t
 - Modified test messages to conform to J2735 2020
 - Modified TIM config to conform to J2735 2020
 - Fixed some typos in the README
+- Fixed typo in unit test name in `validator_integration_test.py`
 
 ### Release 0.0.9
 - Regular expression validation for strings
