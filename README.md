@@ -150,7 +150,7 @@ The existence of a list is specified by adding .list to the field path where the
 
 
 ###### Optional/Mandatory Fields
-The EqualsValue fieldName references the optional field that the field depends on. If the field is optional, the fieldName should reference itself. If the field is manditory assuming another field exists (usually its parent), then that field should be referenced in the fieldName. If the field is manditory regardless of other fields then the EqualsValue condition is not necessary.
+The EqualsValue fieldName references the optional field that the field depends on. If the field is optional, the fieldName should reference itself. If the field is mandatory assuming another field exists (usually its parent), then that field should be referenced in the fieldName. If the field is mandatory regardless of other fields then the EqualsValue condition is not necessary.
 
 In the example above, elevationOffset is optional, latOffset is mandatory if crumbData exists, and crumbData{0}.timeOffset is always mandatory. 
 
@@ -602,7 +602,7 @@ EqualsValue = {"conditions":[{"ifPart":{"fieldName":"metadata.recordGeneratedBy"
 ```
 
 The following field validation specifies that sequential validation should NOT be enacted on `metadata.serialId.recordId` when the records is from
-and `rxMsg` OR the records is _santiized_ (`"metadata.sanitized": "True"`.
+and `rxMsg` OR the records is _sanitized_ (`"metadata.sanitized": "True"`.
 fields when
 
 ```
@@ -671,7 +671,13 @@ This library is used in the following test and verification applications as of t
 
 ## Release Notes
 
-### Release 0.0.8
+### Release 0.0.10
+- Modified test messages to conform to J2735 2020
+- Modified TIM config to conform to J2735 2020
+- Fixed some typos in the README
+- Fixed typo in unit test name in `validator_integration_test.py`
+
+### Release 0.0.9
 - Regular expression validation for strings
 
 ### Release 0.0.8
