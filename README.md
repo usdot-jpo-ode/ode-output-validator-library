@@ -150,7 +150,7 @@ The existence of a list is specified by adding .list to the field path where the
 
 
 ###### Optional/Mandatory Fields
-The EqualsValue fieldName references the optional field that the field depends on. If the field is optional, the fieldName should reference itself. If the field is manditory assuming another field exists (usually its parent), then that field should be referenced in the fieldName. If the field is manditory regardless of other fields then the EqualsValue condition is not necessary.
+The EqualsValue fieldName references the optional field that the field depends on. If the field is optional, the fieldName should reference itself. If the field is mandatory assuming another field exists (usually its parent), then that field should be referenced in the fieldName. If the field is mandatory regardless of other fields then the EqualsValue condition is not necessary.
 
 In the example above, elevationOffset is optional, latOffset is mandatory if crumbData exists, and crumbData{0}.timeOffset is always mandatory. 
 
