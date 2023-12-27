@@ -671,7 +671,12 @@ This library is used in the following test and verification applications as of t
 
 ## Release Notes
 
-### Release 0.0.8
+### Release 0.0.10
+- Modified test messages to conform to J2735 2020
+- Modified TIM config to conform to J2735 2020
+- Fixed some typos in the README
+
+### Release 0.0.9
 - Regular expression validation for strings
 
 ### Release 0.0.8
