@@ -602,7 +602,7 @@ EqualsValue = {"conditions":[{"ifPart":{"fieldName":"metadata.recordGeneratedBy"
 ```
 
 The following field validation specifies that sequential validation should NOT be enacted on `metadata.serialId.recordId` when the records is from
-and `rxMsg` OR the records is _santiized_ (`"metadata.sanitized": "True"`.
+and `rxMsg` OR the records is _sanitized_ (`"metadata.sanitized": "True"`.
 fields when
 
 ```
