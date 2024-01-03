@@ -16,7 +16,7 @@ class ValidatorIntegrationTest(unittest.TestCase):
         results = self._validate_file(data_file, config_file)
         assert_results(self, results, 0)
 
-    def test_good_braodcast_tim(self):
+    def test_good_broadcast_tim(self):
         data_file = 'tests/testfiles/good_broadcast_tim.json'
         config_file = 'odevalidator/configs/config_tim.ini'
         results = self._validate_file(data_file, config_file)
